@@ -300,3 +300,862 @@ type TaskResponse = 'yes' | 'no' | 'skip';
 - **JSON Fields for Metadata:** AI plan data and notification preferences stored as JSON for flexibility
 - **Enum Types:** Clear, type-safe status values that prevent invalid states
 - **Nullable Fields:** Supports optional data and different lifecycle states
+
+## API Specification
+
+Since we're using Supabase Auto-API, most CRUD operations are automatically generated from our database schema with Row Level Security policies. However, we need custom Edge Functions for AI-powered features and complex business logic.
+
+### REST API Specification
+
+```yaml
+openapi: 3.0.0
+info:
+  title: AI Habit Tracker API
+  version: 1.0.0
+  description: API for AI-powered habit tracking with goal breakdown and progress management
+servers:
+  - url: https://{project-id}.supabase.co/rest/v1
+    description: Supabase Auto-API (CRUD operations)
+  - url: https://{project-id}.supabase.co/functions/v1
+    description: Supabase Edge Functions (AI & business logic)
+
+paths:
+  # Auto-generated CRUD endpoints (via Supabase)
+  /users:
+    get:
+      summary: Get user profile
+      security: [Bearer: []]
+      responses:
+        200:
+          description: User profile data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /journeys:
+    get:
+      summary: List user's journeys
+      security: [Bearer: []]
+      responses:
+        200:
+          description: Array of user journeys
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Journey'
+    post:
+      summary: Create new journey (calls AI generation)
+      security: [Bearer: []]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  example: "Learn Spanish"
+                description:
+                  type: string
+                  example: "I want to become conversational in Spanish for my trip to Mexico"
+      responses:
+        201:
+          description: Journey created with AI-generated plan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Journey'
+
+  # Custom Edge Functions
+  /functions/v1/generate-journey:
+    post:
+      summary: AI-powered journey generation
+      security: [Bearer: []]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                goal_description:
+                  type: string
+                user_context:
+                  type: object
+      responses:
+        200:
+          description: AI-generated journey plan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIGeneratedPlan'
+
+  /functions/v1/replan-journey:
+    post:
+      summary: AI-powered journey replanning
+      security: [Bearer: []]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                journey_id:
+                  type: string
+                failure_reason:
+                  type: string
+      responses:
+        200:
+          description: Updated journey plan
+
+  /functions/v1/check-stage-progression:
+    post:
+      summary: Evaluate if user can advance to next stage
+      security: [Bearer: []]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                stage_id:
+                  type: string
+      responses:
+        200:
+          description: Progression evaluation result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  can_advance:
+                    type: boolean
+                  next_action:
+                    type: string
+                    enum: [advance, retry, replan]
+```
+
+**Key Authentication Notes:**
+- All endpoints require JWT authentication via Supabase Auth
+- Row Level Security policies enforce user data isolation
+- Edge Functions validate JWT tokens and user permissions
+
+**Error Handling:**
+- Standard HTTP status codes (400, 401, 403, 404, 500)
+- Consistent error response format following Supabase conventions
+- AI service errors are handled gracefully with fallback responses
+
+## Components
+
+Based on the architectural patterns, tech stack, and data models, here are the major logical components across the fullstack:
+
+### Mobile Application (Frontend)
+
+**Responsibility:** Provides the user interface for daily habit tracking, goal setup, and progress visualization
+
+**Key Interfaces:**
+- Navigation: Stack and tab navigation using React Navigation
+- State Management: Zustand stores for app state
+- API Client: Supabase client for data operations
+- Real-time Subscriptions: WebSocket connections for live updates
+
+**Dependencies:** Supabase API, Authentication Service, Push Notification Service
+
+**Technology Stack:** Expo (React Native), TypeScript, React Native Elements, NativeWind, Zustand
+
+### Authentication Service (Supabase Auth)
+
+**Responsibility:** Handles user registration, login, session management, and JWT token validation
+
+**Key Interfaces:**
+- SignUp/SignIn: Email, social login (Google, Apple)
+- Session Management: JWT token refresh and validation
+- Row Level Security: Database access control
+
+**Dependencies:** Supabase platform services
+
+**Technology Stack:** Supabase Auth, JWT tokens, OAuth providers
+
+### Data Access Layer
+
+**Responsibility:** Abstracts database operations and provides type-safe data access patterns
+
+**Key Interfaces:**
+- Repository Pattern: Abstract data operations (UserRepository, JourneyRepository, etc.)
+- Supabase Client: Direct database operations
+- Real-time Subscriptions: Live data updates
+
+**Dependencies:** PostgreSQL database, Supabase client
+
+**Technology Stack:** Supabase Auto-API, PostgreSQL, TypeScript interfaces
+
+### AI Journey Generator (Edge Function)
+
+**Responsibility:** Transforms user goals into structured habit journeys using AI
+
+**Key Interfaces:**
+- Goal Processing: Natural language goal analysis
+- Journey Creation: Structured roadmap generation
+- Context Analysis: User experience level and preferences
+
+**Dependencies:** OpenAI API, User context data, Journey templates
+
+**Technology Stack:** Supabase Edge Functions, OpenAI API, TypeScript
+
+### Progress Evaluation Engine (Edge Function)
+
+**Responsibility:** Evaluates user progress and determines stage advancement eligibility
+
+**Key Interfaces:**
+- Progress Calculation: Analyze task completion patterns
+- Stage Advancement: Apply success criteria logic
+- Failure Detection: Identify when replanning is needed
+
+**Dependencies:** Task history, Stage success criteria, Journey data
+
+**Technology Stack:** Supabase Edge Functions, PostgreSQL triggers, TypeScript
+
+### Notification Service
+
+**Responsibility:** Manages push notifications for habit reminders and progress updates
+
+**Key Interfaces:**
+- Scheduled Notifications: Daily habit reminders
+- Achievement Notifications: Level-up celebrations
+- Re-engagement: Missed habit notifications
+
+**Dependencies:** User notification preferences, Journey status, Expo Push Service
+
+**Technology Stack:** Expo Notifications, Supabase Edge Functions for scheduling
+
+### Real-time Sync Engine
+
+**Responsibility:** Provides live updates between database changes and mobile app
+
+**Key Interfaces:**
+- WebSocket Connections: Real-time database subscriptions
+- State Synchronization: Keep app state current with server
+- Conflict Resolution: Handle concurrent updates
+
+**Dependencies:** PostgreSQL triggers, Supabase Realtime
+
+**Technology Stack:** Supabase Realtime, WebSocket connections, PostgreSQL triggers
+
+### Component Interaction Diagram
+
+```mermaid
+graph TB
+    Mobile[Mobile Application] --> Auth[Authentication Service]
+    Mobile --> DAL[Data Access Layer]
+    Mobile --> Notifications[Notification Service]
+    Mobile --> Realtime[Real-time Sync Engine]
+    
+    DAL --> DB[(PostgreSQL Database)]
+    
+    Auth --> DB
+    
+    AIGen[AI Journey Generator] --> OpenAI[OpenAI API]
+    AIGen --> DAL
+    
+    ProgressEngine[Progress Evaluation Engine] --> DAL
+    ProgressEngine --> AIGen
+    
+    Notifications --> Mobile
+    
+    Realtime --> DB
+    Realtime --> Mobile
+    
+    subgraph "Supabase Platform"
+        Auth
+        DAL
+        DB
+        AIGen
+        ProgressEngine
+        Realtime
+    end
+    
+    subgraph "External Services"
+        OpenAI
+        ExpoPush[Expo Push Service]
+    end
+    
+    Notifications --> ExpoPush
+```
+
+**Component Design Rationale:**
+- **Separation of Concerns:** Each component has a single, well-defined responsibility
+- **Loose Coupling:** Components interact through well-defined interfaces
+- **Scalability:** Edge Functions can scale independently based on demand
+- **Testability:** Clear boundaries enable effective unit and integration testing
+- **Reusability:** Components like AI Generation can be extended for different goal types
+
+## Database Schema
+
+Transform the conceptual data models into concrete PostgreSQL schemas with proper constraints, indexes, and relationships:
+
+```sql
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Users table (extends Supabase auth.users)
+CREATE TABLE public.users (
+  id UUID REFERENCES auth.users(id) PRIMARY KEY,
+  email TEXT NOT NULL,
+  name TEXT,
+  avatar_url TEXT,
+  timezone TEXT NOT NULL DEFAULT 'UTC',
+  notification_preferences JSONB NOT NULL DEFAULT '{
+    "daily_reminder": true,
+    "weekly_summary": true,
+    "level_up_celebration": true,
+    "preferred_time": "08:00"
+  }'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Journeys table
+CREATE TABLE public.journeys (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
+  title TEXT NOT NULL CHECK (length(title) <= 100),
+  description TEXT NOT NULL CHECK (length(description) <= 1000),
+  ai_generated_plan JSONB NOT NULL,
+  current_stage_id UUID,
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'paused', 'completed', 'abandoned')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  completed_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Stages table
+CREATE TABLE public.stages (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  journey_id UUID REFERENCES public.journeys(id) ON DELETE CASCADE NOT NULL,
+  stage_number INTEGER NOT NULL CHECK (stage_number > 0),
+  title TEXT NOT NULL CHECK (length(title) <= 200),
+  description TEXT NOT NULL CHECK (length(description) <= 500),
+  daily_habit_prompt TEXT NOT NULL CHECK (length(daily_habit_prompt) <= 300),
+  success_criteria JSONB NOT NULL DEFAULT '{
+    "target_days_per_week": 3,
+    "required_consecutive_weeks": 2
+  }'::jsonb,
+  status TEXT NOT NULL DEFAULT 'upcoming' CHECK (status IN ('upcoming', 'active', 'completed', 'failed', 'replanning')),
+  started_at TIMESTAMP WITH TIME ZONE,
+  completed_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  
+  UNIQUE(journey_id, stage_number)
+);
+
+-- Tasks table
+CREATE TABLE public.tasks (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  stage_id UUID REFERENCES public.stages(id) ON DELETE CASCADE NOT NULL,
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
+  date DATE NOT NULL,
+  response TEXT CHECK (response IN ('yes', 'no', 'skip')),
+  completed_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  
+  UNIQUE(stage_id, date)
+);
+
+-- Add foreign key constraint for current_stage_id after stages table is created
+ALTER TABLE public.journeys 
+ADD CONSTRAINT fk_current_stage 
+FOREIGN KEY (current_stage_id) REFERENCES public.stages(id);
+
+-- Indexes for performance
+CREATE INDEX idx_journeys_user_id ON public.journeys(user_id);
+CREATE INDEX idx_journeys_status ON public.journeys(status);
+CREATE INDEX idx_stages_journey_id ON public.stages(journey_id);
+CREATE INDEX idx_stages_status ON public.stages(status);
+CREATE INDEX idx_tasks_user_id ON public.tasks(user_id);
+CREATE INDEX idx_tasks_stage_id ON public.stages(stage_id);
+CREATE INDEX idx_tasks_date ON public.tasks(date);
+CREATE INDEX idx_tasks_user_date ON public.tasks(user_id, date);
+
+-- Updated_at trigger function
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Apply updated_at triggers
+CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON public.users 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_journeys_updated_at BEFORE UPDATE ON public.journeys 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Row Level Security (RLS) policies
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.journeys ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.stages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
+
+-- Users can only access their own data
+CREATE POLICY "Users can view own profile" ON public.users
+    FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Users can update own profile" ON public.users
+    FOR UPDATE USING (auth.uid() = id);
+
+-- Journey policies
+CREATE POLICY "Users can view own journeys" ON public.journeys
+    FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can create own journeys" ON public.journeys
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own journeys" ON public.journeys
+    FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete own journeys" ON public.journeys
+    FOR DELETE USING (auth.uid() = user_id);
+
+-- Stage policies (inherit from journey ownership)
+CREATE POLICY "Users can view own stages" ON public.stages
+    FOR SELECT USING (
+        EXISTS (SELECT 1 FROM public.journeys WHERE id = journey_id AND user_id = auth.uid())
+    );
+CREATE POLICY "Users can manage own stages" ON public.stages
+    FOR ALL USING (
+        EXISTS (SELECT 1 FROM public.journeys WHERE id = journey_id AND user_id = auth.uid())
+    );
+
+-- Task policies
+CREATE POLICY "Users can view own tasks" ON public.tasks
+    FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can create own tasks" ON public.tasks
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own tasks" ON public.tasks
+    FOR UPDATE USING (auth.uid() = user_id);
+```
+
+**Schema Design Considerations:**
+- **RLS Policies:** Ensure complete data isolation between users
+- **Constraints:** Prevent invalid data entry with CHECK constraints
+- **Indexes:** Optimized for common query patterns (user-specific data, date ranges)
+- **Triggers:** Automatic timestamp management for audit trails
+- **JSONB Fields:** Flexible storage for AI-generated content and user preferences
+- **Cascading Deletes:** Maintain referential integrity when journeys are deleted
+
+## Unified Project Structure
+
+Monorepo structure accommodating both mobile app and backend services with shared packages:
+
+```
+ai-habit-tracker/
+├── .github/                    # CI/CD workflows
+│   └── workflows/
+│       ├── ci.yaml
+│       ├── test.yaml
+│       └── deploy.yaml
+├── apps/                       # Application packages
+│   └── mobile/                 # Expo React Native app
+│       ├── src/
+│       │   ├── components/     # UI components
+│       │   │   ├── common/     # Reusable components
+│       │   │   ├── journey/    # Journey-specific components
+│       │   │   └── habit/      # Daily habit components
+│       │   ├── screens/        # Screen components
+│       │   │   ├── auth/       # Authentication screens
+│       │   │   ├── journey/    # Journey management screens
+│       │   │   ├── habit/      # Daily habit tracking
+│       │   │   └── profile/    # User profile screens
+│       │   ├── navigation/     # Navigation configuration
+│       │   ├── services/       # API client services
+│       │   ├── stores/         # Zustand state management
+│       │   ├── hooks/          # Custom React hooks
+│       │   ├── utils/          # Frontend utilities
+│       │   └── types/          # Frontend-specific types
+│       ├── assets/             # Images, fonts, etc.
+│       ├── app.config.js       # Expo configuration
+│       ├── package.json
+│       └── README.md
+├── packages/                   # Shared packages
+│   ├── shared/                 # Shared types and utilities
+│   │   ├── src/
+│   │   │   ├── types/          # TypeScript interfaces
+│   │   │   │   ├── api.ts      # API request/response types
+│   │   │   │   ├── database.ts # Database entity types
+│   │   │   │   └── index.ts    # Exported types
+│   │   │   ├── constants/      # Shared constants
+│   │   │   ├── utils/          # Shared utilities
+│   │   │   └── validation/     # Shared validation schemas
+│   │   └── package.json
+│   └── api-client/             # Supabase client configuration
+│       ├── src/
+│       │   ├── client.ts       # Supabase client setup
+│       │   ├── repositories/   # Data access patterns
+│       │   └── types.ts        # Client-specific types
+│       └── package.json
+├── supabase/                   # Database and Edge Functions
+│   ├── migrations/             # Database migrations
+│   │   ├── 20250130000001_initial_schema.sql
+│   │   ├── 20250130000002_add_indexes.sql
+│   │   └── 20250130000003_add_rls_policies.sql
+│   ├── functions/              # Edge Functions
+│   │   ├── generate-journey/   # AI journey generation
+│   │   │   ├── index.ts
+│   │   │   └── package.json
+│   │   ├── replan-journey/     # AI journey replanning
+│   │   │   ├── index.ts
+│   │   │   └── package.json
+│   │   └── check-progression/  # Stage progression logic
+│   │       ├── index.ts
+│   │       └── package.json
+│   ├── seed.sql                # Development seed data
+│   └── config.toml             # Supabase configuration
+├── docs/                       # Documentation
+│   ├── api.md                  # API documentation
+│   ├── deployment.md           # Deployment guide
+│   └── development.md          # Development setup
+├── scripts/                    # Build/deploy scripts
+│   ├── setup.sh                # Initial project setup
+│   ├── deploy.sh               # Deployment script
+│   └── seed-dev.sh             # Development data seeding
+├── .env.example                # Environment template
+├── .gitignore
+├── package.json                # Root package.json with workspaces
+├── turbo.json                  # Turborepo configuration (optional)
+└── README.md
+```
+
+**Project Structure Benefits:**
+- **Clear Separation:** Apps vs packages vs infrastructure
+- **Type Safety:** Shared types ensure consistency across stack
+- **Efficient Development:** Hot reloading and shared package updates
+- **Scalable:** Easy to add web dashboard or additional mobile apps
+- **Version Control:** Independent versioning for each package
+
+## Development Workflow
+
+### Local Development Setup
+
+**Prerequisites:**
+```bash
+# Install Node.js 18+ and npm
+node --version  # Should be 18+
+npm --version   # Should be 8+
+
+# Install Expo CLI globally
+npm install -g @expo/cli
+
+# Install Supabase CLI
+npm install -g supabase
+```
+
+**Initial Setup:**
+```bash
+# Clone repository
+git clone https://github.com/your-org/ai-habit-tracker.git
+cd ai-habit-tracker
+
+# Install all dependencies (monorepo)
+npm install
+
+# Set up environment variables
+cp .env.example .env.local
+
+# Initialize Supabase project
+supabase init
+supabase start
+
+# Run database migrations
+supabase db reset
+```
+
+**Development Commands:**
+```bash
+# Start mobile development server
+npm run dev:mobile
+
+# Start Supabase local development
+npm run dev:supabase
+
+# Run all tests
+npm run test
+
+# Type checking
+npm run type-check
+
+# Linting
+npm run lint
+```
+
+### Environment Configuration
+
+**Required Environment Variables:**
+
+```bash
+# Mobile App (.env.local)
+EXPO_PUBLIC_SUPABASE_URL=your-supabase-url
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+EXPO_PUBLIC_OPENAI_API_KEY=your-openai-key
+
+# Supabase Edge Functions (.env)
+OPENAI_API_KEY=your-openai-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
+
+## Deployment Architecture
+
+### Deployment Strategy
+
+**Mobile Deployment:**
+- **Platform:** Expo Application Services (EAS)
+- **Build Command:** `eas build --platform all`
+- **Distribution:** App Store and Google Play Store
+- **OTA Updates:** Expo Updates for JavaScript-only changes
+
+**Backend Deployment:**
+- **Platform:** Supabase Cloud
+- **Database:** Automated PostgreSQL hosting
+- **Edge Functions:** Automatic deployment via Supabase CLI
+- **Deployment Method:** Infrastructure as Code via migrations
+
+### CI/CD Pipeline
+
+```yaml
+# .github/workflows/deploy.yaml
+name: Deploy
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - run: npm ci
+      - run: npm run test
+      - run: npm run type-check
+
+  deploy-backend:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: npx supabase db push
+      - run: npx supabase functions deploy
+
+  build-mobile:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: eas build --platform all --non-interactive
+```
+
+### Environments
+
+| Environment | Mobile | Backend | Purpose |
+|-------------|---------|---------|---------|
+| Development | Expo Dev Client | Supabase Local | Local development |
+| Staging | TestFlight/Internal Testing | Supabase Staging | Pre-production testing |
+| Production | App Store/Google Play | Supabase Production | Live environment |
+
+## Coding Standards
+
+### Critical Fullstack Rules
+
+- **Type Sharing:** Always define types in `packages/shared` and import from there - prevents type mismatches between frontend/backend
+- **API Calls:** Never make direct HTTP calls - use the repository pattern from `packages/api-client`
+- **Environment Variables:** Access only through config objects, never `process.env` directly in components
+- **Error Handling:** All Edge Functions must use the standard error handler with proper logging
+- **State Updates:** Never mutate Zustand state directly - use proper state management patterns
+- **Authentication:** Always validate JWT tokens in Edge Functions, never trust client-side auth state
+- **Database Access:** Use Row Level Security policies, never bypass with service role in client code
+
+### Naming Conventions
+
+| Element | Frontend | Backend | Example |
+|---------|----------|---------|---------|
+| Components | PascalCase | - | `HabitTracker.tsx` |
+| Hooks | camelCase with 'use' | - | `useJourney.ts` |
+| Edge Functions | kebab-case | kebab-case | `generate-journey` |
+| Database Tables | - | snake_case | `user_journeys` |
+| API Endpoints | - | kebab-case | `/api/journey-progress` |
+
+## Error Handling Strategy
+
+### Error Flow
+
+```mermaid
+sequenceDiagram
+    participant Mobile as Mobile App
+    participant API as Supabase API
+    participant EdgeFn as Edge Function
+    participant External as External Service
+
+    Mobile->>API: Request
+    API-->>Mobile: Success/Error Response
+    
+    Mobile->>EdgeFn: AI Request
+    EdgeFn->>External: OpenAI API Call
+    External-->>EdgeFn: Response/Error
+    EdgeFn-->>Mobile: Processed Response/Error
+    
+    Note over Mobile: Handle errors with user-friendly messages
+    Note over EdgeFn: Log errors for debugging
+```
+
+### Error Response Format
+
+```typescript
+interface ApiError {
+  error: {
+    code: string;
+    message: string;
+    details?: Record<string, any>;
+    timestamp: string;
+    requestId: string;
+  };
+}
+```
+
+### Frontend Error Handling
+
+```typescript
+// Global error handler for API calls
+export const handleApiError = (error: any): string => {
+  if (error?.response?.data?.error) {
+    return error.response.data.error.message;
+  }
+  if (error?.message) {
+    return error.message;
+  }
+  return 'An unexpected error occurred. Please try again.';
+};
+
+// Usage in components
+const { data, error, isLoading } = useQuery({
+  queryKey: ['journeys'],
+  queryFn: journeyRepository.getAll,
+  onError: (error) => {
+    const message = handleApiError(error);
+    showToast(message, 'error');
+  }
+});
+```
+
+### Backend Error Handling
+
+```typescript
+// Standard error handler for Edge Functions
+export const handleEdgeFunctionError = (error: any, context: string) => {
+  const errorId = crypto.randomUUID();
+  
+  console.error(`[${errorId}] ${context}:`, {
+    error: error.message,
+    stack: error.stack,
+    timestamp: new Date().toISOString()
+  });
+
+  return new Response(
+    JSON.stringify({
+      error: {
+        code: error.code || 'INTERNAL_ERROR',
+        message: error.message || 'An unexpected error occurred',
+        requestId: errorId,
+        timestamp: new Date().toISOString()
+      }
+    }),
+    {
+      status: error.status || 500,
+      headers: { 'Content-Type': 'application/json' }
+    }
+  );
+};
+```
+
+## Security and Performance
+
+### Security Requirements
+
+**Frontend Security:**
+- Environment variables properly scoped with `EXPO_PUBLIC_` prefix
+- Secure token storage using Expo SecureStore
+- Input validation on all user inputs before API calls
+
+**Backend Security:**
+- Row Level Security policies enforce data isolation
+- JWT token validation in all Edge Functions
+- Rate limiting through Supabase built-in protections
+- CORS policies configured for mobile app origins only
+
+**Authentication Security:**
+- JWT tokens stored securely on device
+- Automatic token refresh through Supabase client
+- Session timeout after 7 days of inactivity
+
+### Performance Optimization
+
+**Frontend Performance:**
+- Bundle size target: <10MB for mobile app
+- Lazy loading for non-critical screens
+- Image optimization through Expo image caching
+
+**Backend Performance:**
+- Response time target: <200ms for API calls, <2s for AI generation
+- Database query optimization through proper indexing
+- Edge Function cold start mitigation through keep-alive patterns
+
+## Testing Strategy
+
+### MVP Testing Approach
+
+**Frontend Tests:**
+```
+apps/mobile/src/__tests__/
+├── components/           # Component unit tests
+├── hooks/               # Hook unit tests
+├── services/            # API service tests
+└── utils/               # Utility function tests
+```
+
+**Backend Tests:**
+```
+supabase/functions/__tests__/
+├── generate-journey.test.ts    # AI generation tests
+├── check-progression.test.ts   # Progress logic tests
+└── utils.test.ts              # Shared utility tests
+```
+
+**Test Examples:**
+
+```typescript
+// Frontend component test
+describe('HabitTracker', () => {
+  it('should display habit prompt', () => {
+    render(<HabitTracker habit="Did you practice Spanish today?" />);
+    expect(screen.getByText(/practice Spanish/)).toBeInTheDocument();
+  });
+});
+
+// Backend Edge Function test
+describe('generate-journey', () => {
+  it('should create valid journey structure', async () => {
+    const response = await generateJourney({
+      goal: "Learn Spanish",
+      userContext: { experience: "beginner" }
+    });
+    
+    expect(response.stages).toHaveLength.greaterThan(0);
+    expect(response.estimated_duration_weeks).toBeGreaterThan(0);
+  });
+});
+```
+
+This completes the comprehensive fullstack architecture document for your AI Habit Tracker MVP. The architecture prioritizes rapid development while maintaining scalability and security through the Expo + Supabase tech stack.
