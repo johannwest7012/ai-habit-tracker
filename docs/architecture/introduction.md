@@ -6,12 +6,18 @@ This unified approach combines what would traditionally be separate backend and 
 
 ## Starter Template or Existing Project
 
-**Decision:** This is a greenfield project with specific technology choices already made. No starter template is mentioned, but the Expo + Supabase combination is a modern, well-supported fullstack approach.
+This is a greenfield project built with:
+- **Expo managed workflow** for the mobile application
+- **Supabase** as the Backend-as-a-Service platform
+- **Monorepo structure** for the codebase organization
 
-**Rationale:** The Expo + Supabase combination provides rapid development capabilities with built-in authentication, real-time database features, and Edge Functions for serverless backend logic. This aligns well with your mobile-first approach and the AI integration requirements described in the PRD.
+While not using a specific starter template, we leverage:
+- Expo's TypeScript template for the initial project setup
+- Supabase's React Native quickstart for authentication patterns
+- React Query's Expo examples for state management patterns
 
 ## Change Log
 
 | Date | Version | Description | Author |
 |------|---------|-------------|---------|
-| 2025-01-30 | 1.0 | Initial architecture document | Winston (Architect) |
+| 2025-09-02 | 1.0 | Initial fullstack architecture creation | Winston (Architect) |

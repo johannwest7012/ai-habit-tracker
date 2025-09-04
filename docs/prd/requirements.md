@@ -1,29 +1,45 @@
 # Requirements
 
-## Functional
+## Functional Requirements
 
-**FR1:** The system shall allow users to input long-term goals via natural language chat interface  
-**FR2:** The AI shall generate personalized weekly roadmaps with progressive daily Yes/No tasks based on user goals  
-**FR3:** The system shall provide a daily tracking UI with Yes/No/Skip buttons for habit completion  
-**FR4:** The system shall display celebratory feedback (confetti, sound) upon successful task completion  
-**FR5:** The system shall generate weekly progress summaries showing completion rates against success criteria  
-**FR6:** The system shall automatically promote users to next stage when success criteria are met (e.g., 3 Yes out of 5 target days)  
-**FR7:** The system shall display a roadmap view showing all past, current, and future weeks in linked-list format  
-**FR8:** The system shall implement progression logic preventing demotion in MVP (users retry same week on failure)  
-**FR9:** The system shall offer "Replan Journey" functionality when users fail consistently  
-**FR10:** The AI shall regenerate gentler, revised habit plans based on user failure patterns and feedback  
-**FR11:** The system shall store user journeys, stages, and task responses with proper data persistence  
-**FR12:** The system shall provide user authentication and profile management capabilities
+**FR1:** The system shall generate AI-powered roadmaps that transform user-inputted long-term goals into 8-12 week progressions with specific weekly stages and daily binary habits.
 
-## Non Functional
+**FR2:** The daily tracking interface shall provide simple binary completion options (Yes/No/Skip) for each habit with single-tap logging capability.
 
-**NFR1:** The mobile app shall be built with Expo (React Native) for cross-platform deployment  
-**NFR2:** The backend shall use Supabase (Auth, PostgreSQL, Edge Functions) for scalability and rapid development  
-**NFR3:** AI integration shall utilize OpenAI API with proper prompt tuning based on user context  
-**NFR4:** The system shall support real-time data synchronization between client and server  
-**NFR5:** Daily habit interactions must feel emotionally engaging with sub-200ms response times  
-**NFR6:** The system shall implement Row Level Security policies for user data isolation  
-**NFR7:** The app shall be optimized for mobile-first usage with responsive design principles  
-**NFR8:** The system shall handle AI service failures gracefully with appropriate fallback responses  
-**NFR9:** Data persistence shall use PostgreSQL with proper indexing for user-specific queries  
-**NFR10:** The system shall maintain audit trails for user actions and system state changes
+**FR3:** The system shall automatically advance users to the next weekly stage when success criteria are met (configurable threshold, default 5/7 days completed).
+
+**FR4:** The visual progress display shall show a linked-list roadmap view with completed stages, current stage, and upcoming stages including progress indicators.
+
+**FR5:** The system shall provide basic recalibration by offering simplified alternatives when users fail to complete a weekly stage.
+
+**FR6:** The goal setup wizard shall guide users through articulating their long-term goal and expected timeline during onboarding.
+
+**FR7:** The system shall support user preview and editing of AI-generated roadmaps with simple explanations for each stage.
+
+**FR8:** The system shall maintain offline capability for daily tracking with synchronization when connectivity is restored.
+
+**FR9:** The system shall provide basic reminder notifications for daily habit completion (no advanced push notification features in MVP).
+
+**FR10:** The system shall track user completion rates and progression statistics for each weekly stage.
+
+## Non-Functional Requirements
+
+**NFR1:** AI roadmap generation shall complete within 3 seconds of user goal submission.
+
+**NFR2:** Daily habit logging shall respond within 1 second of user interaction.
+
+**NFR3:** The system shall support iOS 14+ and Android 8+ for optimal performance.
+
+**NFR4:** The system shall maintain 99.5% uptime for core tracking functionality.
+
+**NFR5:** User data shall be encrypted at rest and in transit using industry-standard protocols.
+
+**NFR6:** The system shall handle up to 10,000 concurrent users without performance degradation.
+
+**NFR7:** The mobile application shall function offline for core tracking features with data synchronization upon reconnection.
+
+**NFR8:** The system shall comply with GDPR requirements for user data privacy and deletion.
+
+**NFR9:** API response times shall not exceed 2 seconds for all user-facing operations.
+
+**NFR10:** The system shall integrate with OpenAI GPT-4 API for roadmap generation while respecting rate limits.

@@ -3,29 +3,28 @@
 ## Security Requirements
 
 **Frontend Security:**
-- Environment variables properly scoped with `EXPO_PUBLIC_` prefix
-- Secure token storage using Expo SecureStore
-- Input validation on all user inputs before API calls
+- CSP Headers: Managed by Expo
+- XSS Prevention: React Native's default text encoding
+- Secure Storage: Expo SecureStore for tokens
 
 **Backend Security:**
-- Row Level Security policies enforce data isolation
-- JWT token validation in all Edge Functions
-- Rate limiting through Supabase built-in protections
-- CORS policies configured for mobile app origins only
+- Input Validation: Zod schemas on Edge Functions
+- Rate Limiting: 10 req/min for AI endpoints
+- CORS Policy: Configured per Edge Function
 
 **Authentication Security:**
-- JWT tokens stored securely on device
-- Automatic token refresh through Supabase client
-- Session timeout after 7 days of inactivity
+- Token Storage: Expo SecureStore (encrypted)
+- Session Management: 1-week refresh tokens
+- Password Policy: 8+ chars, 1 number, 1 special
 
 ## Performance Optimization
 
 **Frontend Performance:**
-- Bundle size target: <10MB for mobile app
-- Lazy loading for non-critical screens
-- Image optimization through Expo image caching
+- Bundle Size Target: <5MB initial download
+- Loading Strategy: Lazy load screens, prefetch next stage
+- Caching Strategy: React Query with 5-min stale time
 
 **Backend Performance:**
-- Response time target: <200ms for API calls, <2s for AI generation
-- Database query optimization through proper indexing
-- Edge Function cold start mitigation through keep-alive patterns
+- Response Time Target: <500ms for queries, <5s for AI
+- Database Optimization: Indexes on foreign keys and date fields
+- Caching Strategy: Edge Function results cached 1 hour

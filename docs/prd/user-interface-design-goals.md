@@ -1,26 +1,27 @@
 # User Interface Design Goals
 
 ## Overall UX Vision
-The interface should embody simplicity and emotional engagement, creating a sense of progress and achievement through minimalist design. Every interaction should feel intentional and rewarding, with the primary focus on the daily Yes/No decision that drives habit formation.
+Create a calming, progress-focused mobile experience that feels like a personal coach rather than a productivity tool. The interface should reduce anxiety around habit formation by emphasizing journey over perfection, using gentle visual metaphors of growth and progression. Users should feel supported and guided rather than tracked or judged.
 
 ## Key Interaction Paradigms
-- **Binary Simplicity:** All user inputs are Yes/No/Skip - no complex forms, sliders, or lengthy inputs
-- **Celebratory Feedback:** Success moments are amplified with animation, sound, and visual celebration
-- **Timeline Navigation:** Journey progress is visualized as a forward-moving timeline, never looking backward
-- **Adaptive Guidance:** Interface adjusts based on user success patterns, offering encouragement or replanning options
+- **Single-tap logging:** Primary interaction is one-touch Yes/No/Skip for daily habits with immediate visual feedback
+- **Roadmap navigation:** Vertical scroll through linked stages showing past accomplishments, current focus, and future milestones
+- **AI conversation flow:** Goal setup feels like chatting with a knowledgeable friend who asks thoughtful questions
+- **Gentle notifications:** Reminders feel like gentle nudges rather than demands, with easy snooze/adjust options
 
 ## Core Screens and Views
-- **Journey Creation Screen:** Chat-like interface for goal input and AI clarification
-- **Daily Habit Screen:** Central hub with current habit prompt and Yes/No/Skip buttons
-- **Weekly Summary Screen:** Progress visualization with level-up prompts
-- **Roadmap Timeline View:** Visual journey showing past, current, and future stages
-- **Replan Interface:** Gentle failure recovery with AI-assisted journey modification
+- **Onboarding/Goal Setup Wizard:** Multi-step conversational flow for articulating long-term goals and preferences
+- **Daily Habit Dashboard:** Clean, focused view showing today's binary habit with large tap targets for Yes/No/Skip
+- **Weekly Progress View:** Visual representation of current week's completion pattern with encouragement messaging
+- **Roadmap Overview:** Scrollable timeline showing completed stages, current stage, and upcoming progression milestones
+- **Stage Detail View:** Explanation of current week's focus, why this stage matters, and tips for success
+- **Recalibration Flow:** Gentle adjustment interface when weekly goals aren't met, offering simplified alternatives
 
 ## Accessibility: WCAG AA
-Ensure compatibility with screen readers, sufficient color contrast ratios, and alternative text for all visual elements. Support dynamic text sizing and maintain functionality across assistive technologies.
+Full compliance with WCAG AA standards including high contrast ratios, scalable text, voice-over compatibility, and touch target sizing. Binary tracking interface must be fully navigable via screen readers and alternative input methods.
 
 ## Branding
-Clean, modern aesthetic with encouraging color palette (greens for success, soft blues for progress, warm oranges for celebration). Typography should feel approachable yet confident, supporting the app's role as a gentle but persistent habit coach.
+Warm, natural color palette inspired by growth and seasons (soft greens, earth tones, gentle blues). Visual metaphors of paths, trees, or mountain trails to reinforce the journey concept. Typography should feel friendly but credible—more like a wellness app than a hardcore productivity tool. Subtle animations that reinforce progress and growth rather than urgency or pressure.
 
-## Target Device and Platforms: Mobile Only
-Optimized specifically for iOS and Android smartphones with portrait-first design. All interactions designed for thumb-friendly navigation and single-handed use during daily check-ins.
+## Target Device and Platforms: Mobile-First (iOS/Android via Expo)
+Designed primarily for mobile phones with responsive adaptation for tablets. Native mobile patterns for navigation, gestures, and notifications. Optimized for one-handed use during quick daily check-ins, with landscape support for roadmap overview browsing.

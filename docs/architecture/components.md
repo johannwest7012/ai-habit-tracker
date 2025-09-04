@@ -1,143 +1,185 @@
 # Components
 
-Based on the architectural patterns, tech stack, and data models, here are the major logical components across the fullstack:
+## Mobile App Shell
 
-## Mobile Application (Frontend)
-
-**Responsibility:** Provides the user interface for daily habit tracking, goal setup, and progress visualization
+**Responsibility:** Root application container managing navigation, auth state, and global providers
 
 **Key Interfaces:**
-- Navigation: Stack and tab navigation using React Navigation
-- State Management: Zustand stores for app state
-- API Client: Supabase client for data operations
-- Real-time Subscriptions: WebSocket connections for live updates
+- Navigation container setup
+- Auth context provider
+- React Query client provider
+- Push notification handler
 
-**Dependencies:** Supabase API, Authentication Service, Push Notification Service
+**Dependencies:** React Navigation, Supabase Auth, React Query, Expo Notifications
 
-**Technology Stack:** Expo (React Native), TypeScript, React Native Elements, NativeWind, Zustand
+**Technology Stack:** Expo SDK 50+, React Native, TypeScript
 
-## Authentication Service (Supabase Auth)
+## Authentication Service
 
-**Responsibility:** Handles user registration, login, session management, and JWT token validation
-
-**Key Interfaces:**
-- SignUp/SignIn: Email, social login (Google, Apple)
-- Session Management: JWT token refresh and validation
-- Row Level Security: Database access control
-
-**Dependencies:** Supabase platform services
-
-**Technology Stack:** Supabase Auth, JWT tokens, OAuth providers
-
-## Data Access Layer
-
-**Responsibility:** Abstracts database operations and provides type-safe data access patterns
+**Responsibility:** Manages user authentication, session persistence, and auth state across the app
 
 **Key Interfaces:**
-- Repository Pattern: Abstract data operations (UserRepository, JourneyRepository, etc.)
-- Supabase Client: Direct database operations
-- Real-time Subscriptions: Live data updates
+- `signUp(email, password)`: Register new user
+- `signIn(email, password)`: Authenticate user
+- `signOut()`: Clear session
+- `getSession()`: Retrieve current auth state
+- `onAuthStateChange()`: Subscribe to auth changes
 
-**Dependencies:** PostgreSQL database, Supabase client
+**Dependencies:** Supabase Auth SDK, Secure Storage (Expo SecureStore)
 
-**Technology Stack:** Supabase Auto-API, PostgreSQL, TypeScript interfaces
+**Technology Stack:** Supabase Auth, React Context for state distribution
 
-## AI Journey Generator (Edge Function)
+## Goal Management Component
 
-**Responsibility:** Transforms user goals into structured habit journeys using AI
-
-**Key Interfaces:**
-- Goal Processing: Natural language goal analysis
-- Journey Creation: Structured roadmap generation
-- Context Analysis: User experience level and preferences
-
-**Dependencies:** OpenAI API, User context data, Journey templates
-
-**Technology Stack:** Supabase Edge Functions, OpenAI API, TypeScript
-
-## Progress Evaluation Engine (Edge Function)
-
-**Responsibility:** Evaluates user progress and determines stage advancement eligibility
+**Responsibility:** Handles goal creation, roadmap generation, and goal lifecycle management
 
 **Key Interfaces:**
-- Progress Calculation: Analyze task completion patterns
-- Stage Advancement: Apply success criteria logic
-- Failure Detection: Identify when replanning is needed
+- `createGoal(goalData)`: Initialize new goal
+- `generateRoadmap(goalParams)`: Call AI for roadmap
+- `editRoadmap(goalId, stages)`: Modify AI suggestions
+- `updateGoalStatus(goalId, status)`: Pause/resume/complete goals
 
-**Dependencies:** Task history, Stage success criteria, Journey data
+**Dependencies:** AI Service (Edge Functions), Data Sync Service
 
-**Technology Stack:** Supabase Edge Functions, PostgreSQL triggers, TypeScript
+**Technology Stack:** React Query for caching, Supabase Edge Functions for AI
+
+## Habit Tracking Component
+
+**Responsibility:** Core daily tracking interface and habit logging operations
+
+**Key Interfaces:**
+- `logHabit(stageId, date, status)`: Record daily completion
+- `getTodayStatus(stageId)`: Check if today is logged
+- `getWeekProgress(stageId)`: Calculate weekly completion
+- `updateLog(logId, status, notes)`: Modify existing log
+
+**Dependencies:** Data Sync Service, Offline Storage
+
+**Technology Stack:** React Native UI, SQLite for offline cache, React Query mutations
+
+## Progress Analytics Component
+
+**Responsibility:** Calculates and displays user progress metrics and weekly summaries
+
+**Key Interfaces:**
+- `checkWeeklyCompletion(stageId)`: Evaluate stage success
+- `getProgressStats(goalId)`: Overall goal metrics
+- `generateWeeklySummary(stageId)`: Create progress report
+- `triggerStageTransition(stageId)`: Advance to next week
+
+**Dependencies:** Habit Tracking Component, Edge Functions
+
+**Technology Stack:** Client-side calculations with React Query, Edge Functions for summaries
+
+## AI Service Component
+
+**Responsibility:** Interfaces with OpenAI for roadmap generation and recalibration
+
+**Key Interfaces:**
+- `generateInitialRoadmap(goalDescription)`: Create new AI roadmap
+- `recalibrateRoadmap(goalId, reason)`: Adjust based on struggles
+- `generateStageTips(stageContext)`: Provide contextual guidance
+
+**Dependencies:** OpenAI API (via Edge Functions), Goal Management Component
+
+**Technology Stack:** Supabase Edge Functions, OpenAI GPT-4 API, TypeScript
+
+## Data Sync Service
+
+**Responsibility:** Manages offline-first data synchronization between local storage and Supabase
+
+**Key Interfaces:**
+- `syncHabitLogs()`: Upload offline logs when connected
+- `subscribeToChanges(channel)`: Realtime subscriptions
+- `cacheData(table, data)`: Store for offline access
+- `resolveConflicts(local, remote)`: Handle sync conflicts
+
+**Dependencies:** Supabase Realtime, SQLite, Network Status Monitor
+
+**Technology Stack:** Supabase Client, Expo SQLite, React Query persistence
 
 ## Notification Service
 
-**Responsibility:** Manages push notifications for habit reminders and progress updates
+**Responsibility:** Manages push notifications for daily reminders and weekly celebrations
 
 **Key Interfaces:**
-- Scheduled Notifications: Daily habit reminders
-- Achievement Notifications: Level-up celebrations
-- Re-engagement: Missed habit notifications
+- `scheduleDailyReminder(time)`: Set daily habit reminder
+- `sendWeeklyComplete()`: Celebrate stage completion
+- `updatePreferences(settings)`: Modify notification settings
+- `requestPermissions()`: Handle OS permissions
 
-**Dependencies:** User notification preferences, Journey status, Expo Push Service
+**Dependencies:** Expo Notifications, User Preferences Store
 
-**Technology Stack:** Expo Notifications, Supabase Edge Functions for scheduling
+**Technology Stack:** Expo Push Notifications, local scheduling
 
-## Real-time Sync Engine
+## UI Component Library
 
-**Responsibility:** Provides live updates between database changes and mobile app
+**Responsibility:** Reusable UI components maintaining consistent design language
 
 **Key Interfaces:**
-- WebSocket Connections: Real-time database subscriptions
-- State Synchronization: Keep app state current with server
-- Conflict Resolution: Handle concurrent updates
+- `<HabitCard />`: Daily habit display and interaction
+- `<ProgressRing />`: Visual progress indicator
+- `<RoadmapTimeline />`: Journey visualization
+- `<StageCard />`: Weekly stage information
 
-**Dependencies:** PostgreSQL triggers, Supabase Realtime
+**Dependencies:** React Native Elements, NativeWind
 
-**Technology Stack:** Supabase Realtime, WebSocket connections, PostgreSQL triggers
+**Technology Stack:** React Native, TypeScript, NativeWind for styling
 
-## Component Interaction Diagram
+## Component Diagrams
 
 ```mermaid
-graph TB
-    Mobile[Mobile Application] --> Auth[Authentication Service]
-    Mobile --> DAL[Data Access Layer]
-    Mobile --> Notifications[Notification Service]
-    Mobile --> Realtime[Real-time Sync Engine]
+graph TD
+    subgraph "Mobile Application"
+        Shell[App Shell]
+        Auth[Auth Service]
+        Goals[Goal Management]
+        Habits[Habit Tracking]
+        Progress[Progress Analytics]
+        Sync[Data Sync Service]
+        Notif[Notification Service]
+        UI[UI Components]
+    end
     
-    DAL --> DB[(PostgreSQL Database)]
+    subgraph "Backend Services"
+        AI[AI Service<br/>Edge Functions]
+        DB[(Supabase DB)]
+        RT[Realtime]
+    end
+    
+    subgraph "External"
+        OpenAI[OpenAI API]
+        Push[Push Services]
+    end
+    
+    Shell --> Auth
+    Shell --> Goals
+    Shell --> Habits
+    
+    Goals --> AI
+    Goals --> Sync
+    
+    Habits --> Sync
+    Habits --> Progress
+    
+    Progress --> AI
+    Progress --> Notif
+    
+    Sync --> DB
+    Sync --> RT
+    
+    AI --> OpenAI
+    AI --> DB
+    
+    Notif --> Push
+    
+    UI --> Goals
+    UI --> Habits
+    UI --> Progress
     
     Auth --> DB
     
-    AIGen[AI Journey Generator] --> OpenAI[OpenAI API]
-    AIGen --> DAL
-    
-    ProgressEngine[Progress Evaluation Engine] --> DAL
-    ProgressEngine --> AIGen
-    
-    Notifications --> Mobile
-    
-    Realtime --> DB
-    Realtime --> Mobile
-    
-    subgraph "Supabase Platform"
-        Auth
-        DAL
-        DB
-        AIGen
-        ProgressEngine
-        Realtime
-    end
-    
-    subgraph "External Services"
-        OpenAI
-        ExpoPush[Expo Push Service]
-    end
-    
-    Notifications --> ExpoPush
+    style Habits fill:#e1f5fe
+    style AI fill:#f3e5f5
+    style Sync fill:#fff3e0
 ```
-
-**Component Design Rationale:**
-- **Separation of Concerns:** Each component has a single, well-defined responsibility
-- **Loose Coupling:** Components interact through well-defined interfaces
-- **Scalability:** Edge Functions can scale independently based on demand
-- **Testability:** Clear boundaries enable effective unit and integration testing
-- **Reusability:** Components like AI Generation can be extended for different goal types

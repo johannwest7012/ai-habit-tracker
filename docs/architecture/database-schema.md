@@ -1,150 +1,283 @@
 # Database Schema
 
-Transform the conceptual data models into concrete PostgreSQL schemas with proper constraints, indexes, and relationships:
-
 ```sql
--- Enable UUID extension
+-- Enable necessary extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Users table (extends Supabase auth.users)
-CREATE TABLE public.users (
-  id UUID REFERENCES auth.users(id) PRIMARY KEY,
-  email TEXT NOT NULL,
-  name TEXT,
-  avatar_url TEXT,
-  timezone TEXT NOT NULL DEFAULT 'UTC',
-  notification_preferences JSONB NOT NULL DEFAULT '{
-    "daily_reminder": true,
-    "weekly_summary": true,
-    "level_up_celebration": true,
-    "preferred_time": "08:00"
-  }'::jsonb,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+-- Users table (extends Supabase Auth)
+CREATE TABLE public.profiles (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    email TEXT UNIQUE NOT NULL,
+    profile_data JSONB DEFAULT '{
+        "onboarding_completed": false,
+        "timezone": "UTC"
+    }'::jsonb,
+    subscription_tier TEXT DEFAULT 'free' CHECK (subscription_tier IN ('free', 'premium')),
+    notification_preferences JSONB DEFAULT '{
+        "daily_reminder": true,
+        "reminder_time": "09:00",
+        "weekly_summary": true
+    }'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Journeys table
-CREATE TABLE public.journeys (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
-  title TEXT NOT NULL CHECK (length(title) <= 100),
-  description TEXT NOT NULL CHECK (length(description) <= 1000),
-  ai_generated_plan JSONB NOT NULL,
-  current_stage_id UUID,
-  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'paused', 'completed', 'abandoned')),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  completed_at TIMESTAMP WITH TIME ZONE
+-- Goals table
+CREATE TABLE public.goals (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    target_date DATE NOT NULL,
+    roadmap JSONB NOT NULL,
+    status TEXT DEFAULT 'active' CHECK (status IN ('active', 'paused', 'completed', 'abandoned')),
+    current_stage_id UUID,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    -- JSON schema validation
+    CONSTRAINT roadmap_schema CHECK (
+        jsonb_typeof(roadmap->'stages') = 'array' AND
+        (roadmap->>'total_weeks')::int > 0 AND
+        (roadmap->>'total_weeks')::int <= 52
+    )
 );
 
--- Stages table
-CREATE TABLE public.stages (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  journey_id UUID REFERENCES public.journeys(id) ON DELETE CASCADE NOT NULL,
-  stage_number INTEGER NOT NULL CHECK (stage_number > 0),
-  title TEXT NOT NULL CHECK (length(title) <= 200),
-  description TEXT NOT NULL CHECK (length(description) <= 500),
-  daily_habit_prompt TEXT NOT NULL CHECK (length(daily_habit_prompt) <= 300),
-  success_criteria JSONB NOT NULL DEFAULT '{
-    "target_days_per_week": 3,
-    "required_consecutive_weeks": 2
-  }'::jsonb,
-  status TEXT NOT NULL DEFAULT 'upcoming' CHECK (status IN ('upcoming', 'active', 'completed', 'failed', 'replanning')),
-  started_at TIMESTAMP WITH TIME ZONE,
-  completed_at TIMESTAMP WITH TIME ZONE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  
-  UNIQUE(journey_id, stage_number)
+-- Weekly stages table
+CREATE TABLE public.weekly_stages (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    goal_id UUID NOT NULL REFERENCES public.goals(id) ON DELETE CASCADE,
+    week_number INTEGER NOT NULL CHECK (week_number > 0 AND week_number <= 52),
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    daily_habit JSONB NOT NULL DEFAULT '{
+        "action": "",
+        "tips": [],
+        "skip_allowed": true
+    }'::jsonb,
+    success_criteria JSONB NOT NULL DEFAULT '{
+        "required_days": 5,
+        "total_days": 7
+    }'::jsonb,
+    status TEXT DEFAULT 'upcoming' CHECK (status IN ('upcoming', 'active', 'completed', 'failed')),
+    start_date DATE,
+    end_date DATE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(goal_id, week_number),
+    -- Date validation
+    CONSTRAINT check_dates CHECK (
+        (start_date IS NULL AND end_date IS NULL) OR 
+        (start_date IS NOT NULL AND end_date IS NOT NULL AND end_date > start_date)
+    )
 );
 
--- Tasks table
-CREATE TABLE public.tasks (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  stage_id UUID REFERENCES public.stages(id) ON DELETE CASCADE NOT NULL,
-  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
-  date DATE NOT NULL,
-  response TEXT CHECK (response IN ('yes', 'no', 'skip')),
-  completed_at TIMESTAMP WITH TIME ZONE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  
-  UNIQUE(stage_id, date)
-);
-
--- Add foreign key constraint for current_stage_id after stages table is created
-ALTER TABLE public.journeys 
+-- Add foreign key for current_stage_id after weekly_stages exists
+ALTER TABLE public.goals 
 ADD CONSTRAINT fk_current_stage 
-FOREIGN KEY (current_stage_id) REFERENCES public.stages(id);
+FOREIGN KEY (current_stage_id) 
+REFERENCES public.weekly_stages(id) ON DELETE SET NULL;
+
+-- Habit logs table with UPSERT support
+CREATE TABLE public.habit_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    stage_id UUID NOT NULL REFERENCES public.weekly_stages(id) ON DELETE CASCADE,
+    date DATE NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('completed', 'skipped', 'missed')),
+    notes TEXT,
+    logged_at TIMESTAMPTZ DEFAULT NOW(),
+    synced_at TIMESTAMPTZ,
+    UNIQUE(stage_id, date)
+);
+
+-- Recalibrations table
+CREATE TABLE public.recalibrations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    goal_id UUID NOT NULL REFERENCES public.goals(id) ON DELETE CASCADE,
+    trigger_stage_id UUID REFERENCES public.weekly_stages(id),
+    original_roadmap JSONB NOT NULL,
+    new_roadmap JSONB NOT NULL,
+    reason TEXT CHECK (reason IN ('repeated_failure', 'user_requested', 'pace_adjustment')),
+    accepted_by_user BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Stage tips table
+CREATE TABLE public.stage_tips (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    stage_id UUID NOT NULL REFERENCES public.weekly_stages(id) ON DELETE CASCADE,
+    tips JSONB DEFAULT '[]'::jsonb,
+    resources JSONB DEFAULT '[]'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
 
 -- Indexes for performance
-CREATE INDEX idx_journeys_user_id ON public.journeys(user_id);
-CREATE INDEX idx_journeys_status ON public.journeys(status);
-CREATE INDEX idx_stages_journey_id ON public.stages(journey_id);
-CREATE INDEX idx_stages_status ON public.stages(status);
-CREATE INDEX idx_tasks_user_id ON public.tasks(user_id);
-CREATE INDEX idx_tasks_stage_id ON public.stages(stage_id);
-CREATE INDEX idx_tasks_date ON public.tasks(date);
-CREATE INDEX idx_tasks_user_date ON public.tasks(user_id, date);
+CREATE INDEX idx_goals_user_id ON public.goals(user_id);
+CREATE INDEX idx_goals_status ON public.goals(status);
+CREATE INDEX idx_weekly_stages_goal_id ON public.weekly_stages(goal_id);
+CREATE INDEX idx_weekly_stages_status ON public.weekly_stages(status);
+CREATE INDEX idx_habit_logs_user_id ON public.habit_logs(user_id);
+CREATE INDEX idx_habit_logs_stage_id ON public.habit_logs(stage_id);
+CREATE INDEX idx_habit_logs_date ON public.habit_logs(date);
+CREATE INDEX idx_habit_logs_stage_date ON public.habit_logs(stage_id, date);
 
--- Updated_at trigger function
-CREATE OR REPLACE FUNCTION update_updated_at_column()
+-- Row Level Security (RLS) Policies
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.goals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.weekly_stages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.habit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.recalibrations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.stage_tips ENABLE ROW LEVEL SECURITY;
+
+-- Profiles policies
+CREATE POLICY "Users can view own profile" ON public.profiles
+    FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Users can update own profile" ON public.profiles
+    FOR UPDATE USING (auth.uid() = id);
+
+-- Goals policies
+CREATE POLICY "Users can view own goals" ON public.goals
+    FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can create own goals" ON public.goals
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own goals" ON public.goals
+    FOR UPDATE USING (auth.uid() = user_id);
+
+-- Weekly stages policies
+CREATE POLICY "Users can view own stages" ON public.weekly_stages
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM public.goals 
+            WHERE goals.id = weekly_stages.goal_id 
+            AND goals.user_id = auth.uid()
+        )
+    );
+CREATE POLICY "Users can update own stages" ON public.weekly_stages
+    FOR UPDATE USING (
+        EXISTS (
+            SELECT 1 FROM public.goals 
+            WHERE goals.id = weekly_stages.goal_id 
+            AND goals.user_id = auth.uid()
+        )
+    );
+
+-- Habit logs policies
+CREATE POLICY "Users can view own logs" ON public.habit_logs
+    FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can create own logs" ON public.habit_logs
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own logs" ON public.habit_logs
+    FOR UPDATE USING (auth.uid() = user_id);
+
+-- Recalibrations policies
+CREATE POLICY "Users can view own recalibrations" ON public.recalibrations
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM public.goals 
+            WHERE goals.id = recalibrations.goal_id 
+            AND goals.user_id = auth.uid()
+        )
+    );
+
+-- Stage tips policies
+CREATE POLICY "Anyone can view tips" ON public.stage_tips
+    FOR SELECT USING (true);
+
+-- Functions for automated operations
+CREATE OR REPLACE FUNCTION public.update_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
     NEW.updated_at = NOW();
     RETURN NEW;
 END;
-$$ language 'plpgsql';
+$$ LANGUAGE plpgsql;
 
 -- Apply updated_at triggers
-CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON public.users 
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_journeys_updated_at BEFORE UPDATE ON public.journeys 
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON public.profiles
+    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+CREATE TRIGGER update_goals_updated_at BEFORE UPDATE ON public.goals
+    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+CREATE TRIGGER update_weekly_stages_updated_at BEFORE UPDATE ON public.weekly_stages
+    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 
--- Row Level Security (RLS) policies
-ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.journeys ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.stages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
+-- Ensure only one active stage per goal
+CREATE OR REPLACE FUNCTION ensure_single_active_stage()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.status = 'active' THEN
+        UPDATE public.weekly_stages
+        SET status = 'completed'
+        WHERE goal_id = NEW.goal_id
+        AND id != NEW.id
+        AND status = 'active';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
--- Users can only access their own data
-CREATE POLICY "Users can view own profile" ON public.users
-    FOR SELECT USING (auth.uid() = id);
-CREATE POLICY "Users can update own profile" ON public.users
-    FOR UPDATE USING (auth.uid() = id);
+CREATE TRIGGER single_active_stage
+BEFORE UPDATE ON public.weekly_stages
+FOR EACH ROW
+WHEN (NEW.status = 'active')
+EXECUTE FUNCTION ensure_single_active_stage();
 
--- Journey policies
-CREATE POLICY "Users can view own journeys" ON public.journeys
-    FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can create own journeys" ON public.journeys
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update own journeys" ON public.journeys
-    FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY "Users can delete own journeys" ON public.journeys
-    FOR DELETE USING (auth.uid() = user_id);
-
--- Stage policies (inherit from journey ownership)
-CREATE POLICY "Users can view own stages" ON public.stages
-    FOR SELECT USING (
-        EXISTS (SELECT 1 FROM public.journeys WHERE id = journey_id AND user_id = auth.uid())
+-- Function to check weekly progress
+CREATE OR REPLACE FUNCTION public.check_weekly_progress(p_stage_id UUID)
+RETURNS JSONB AS $$
+DECLARE
+    v_result JSONB;
+    v_days_completed INTEGER;
+    v_required_days INTEGER;
+    v_total_days INTEGER;
+BEGIN
+    SELECT 
+        (success_criteria->>'required_days')::INTEGER,
+        (success_criteria->>'total_days')::INTEGER
+    INTO v_required_days, v_total_days
+    FROM public.weekly_stages
+    WHERE id = p_stage_id;
+    
+    SELECT COUNT(*)
+    INTO v_days_completed
+    FROM public.habit_logs
+    WHERE stage_id = p_stage_id
+    AND status = 'completed';
+    
+    v_result := jsonb_build_object(
+        'completed', v_days_completed >= v_required_days,
+        'days_completed', v_days_completed,
+        'days_required', v_required_days,
+        'percentage', ROUND((v_days_completed::NUMERIC / v_total_days) * 100)
     );
-CREATE POLICY "Users can manage own stages" ON public.stages
-    FOR ALL USING (
-        EXISTS (SELECT 1 FROM public.journeys WHERE id = journey_id AND user_id = auth.uid())
-    );
+    
+    RETURN v_result;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Task policies
-CREATE POLICY "Users can view own tasks" ON public.tasks
-    FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can create own tasks" ON public.tasks
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update own tasks" ON public.tasks
-    FOR UPDATE USING (auth.uid() = user_id);
+-- Helper function for UPSERT pattern in habit logs
+CREATE OR REPLACE FUNCTION public.log_habit(
+    p_user_id UUID,
+    p_stage_id UUID,
+    p_date DATE,
+    p_status TEXT,
+    p_notes TEXT DEFAULT NULL
+)
+RETURNS UUID AS $$
+DECLARE
+    v_log_id UUID;
+BEGIN
+    INSERT INTO public.habit_logs (user_id, stage_id, date, status, notes)
+    VALUES (p_user_id, p_stage_id, p_date, p_status, p_notes)
+    ON CONFLICT (stage_id, date) 
+    DO UPDATE SET 
+        status = EXCLUDED.status,
+        notes = EXCLUDED.notes,
+        logged_at = NOW(),
+        synced_at = NOW()
+    RETURNING id INTO v_log_id;
+    
+    RETURN v_log_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 ```
-
-**Schema Design Considerations:**
-- **RLS Policies:** Ensure complete data isolation between users
-- **Constraints:** Prevent invalid data entry with CHECK constraints
-- **Indexes:** Optimized for common query patterns (user-specific data, date ranges)
-- **Triggers:** Automatic timestamp management for audit trails
-- **JSONB Fields:** Flexible storage for AI-generated content and user preferences
-- **Cascading Deletes:** Maintain referential integrity when journeys are deleted

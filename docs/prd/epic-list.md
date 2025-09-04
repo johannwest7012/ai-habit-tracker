@@ -1,10 +1,13 @@
 # Epic List
 
-## Epic 1: Foundation & Core Journey Creation
-Establish project infrastructure, user authentication, and AI-powered journey generation to transform user goals into structured habit roadmaps.
+## Epic 1: Foundation & Core Infrastructure
+**Goal:** Establish project setup, authentication system, and basic user onboarding flow while delivering initial goal articulation functionality.
 
-## Epic 2: Daily Habit Tracking & Progress Visualization
-Build the core daily interaction system with Yes/No/Skip tracking, celebratory feedback, weekly summaries, and timeline roadmap views.
+## Epic 2: AI Roadmap Generation & Display  
+**Goal:** Enable users to input long-term goals and receive AI-generated 8-12 week progression roadmaps with visual timeline display.
 
-## Epic 3: Progression & Adaptive Intelligence
-Implement automated level-up logic, failure detection, and AI-powered journey replanning to create truly adaptive habit formation.
+## Epic 3: Daily Habit Tracking & Weekly Progression
+**Goal:** Implement core binary tracking interface (Yes/No/Skip) with weekly stage advancement and progress visualization.
+
+## Epic 4: Adaptive Recalibration & User Retention
+**Goal:** Provide recalibration flows when users struggle with weekly stages and implement retention mechanisms through notifications and encouragement.

@@ -2,77 +2,91 @@
 
 ## Technical Summary
 
-AI Habit Tracker employs a mobile-first serverless architecture built on Expo (React Native) with Supabase backend services. The application leverages a RESTful API design with real-time database synchronization for seamless offline/online habit tracking. Key integration points include OpenAI API for AI-powered goal breakdown, Supabase Auth for user management, and PostgreSQL for structured data persistence. The infrastructure utilizes Supabase's global edge network for optimal performance, while the AI goal generation system runs on Supabase Edge Functions to minimize latency and ensure data privacy. This architecture achieves the PRD's goals of frictionless daily tracking, AI-guided progression, and adaptive habit journeys through a simplified tech stack that prioritizes developer velocity and user experience.
+The AI Habit Tracker employs a mobile-first serverless architecture using Expo React Native for the frontend and Supabase as the Backend-as-a-Service platform. The system integrates OpenAI's GPT-4 for intelligent roadmap generation through Supabase Edge Functions, with PostgreSQL providing persistent storage for user data and AI-generated progressions. Real-time synchronization enables offline-first habit tracking with eventual consistency, while the managed infrastructure approach accelerates MVP delivery within the 3-4 month timeline. This architecture directly supports the PRD's goal of transforming user aspirations into structured, AI-guided weekly progressions through a simple binary tracking interface.
 
 ## Platform and Infrastructure Choice
 
-**Analysis of Options:**
+**Platform:** Supabase + Expo Application Services
+**Key Services:** 
+- Supabase Database (PostgreSQL)
+- Supabase Auth (Authentication & Row Level Security)
+- Supabase Edge Functions (AI integration & business logic)
+- Supabase Realtime (Offline sync)
+- Expo Push Notifications
+- OpenAI API (GPT-4 for roadmap generation)
 
-1. **Expo + Supabase** (Recommended)
-   - **Pros:** Rapid mobile development, built-in auth/storage, real-time features, edge functions for AI processing, excellent developer experience
-   - **Cons:** Vendor lock-in, less control over infrastructure
-   
-2. **React Native + AWS**
-   - **Pros:** Enterprise scale, full control, extensive services
-   - **Cons:** Complex setup, higher learning curve, more operational overhead
-   
-3. **Expo + Firebase**
-   - **Pros:** Google ecosystem integration, mature platform
-   - **Cons:** More expensive, less developer-friendly than Supabase for this use case
-
-**Recommendation:** Expo + Supabase is optimal for this MVP given the requirements for rapid development, mobile-first design, and AI integration needs.
-
-**Platform:** Supabase
-**Key Services:** Auth, PostgreSQL, Edge Functions, Storage, Real-time subscriptions
-**Deployment Host and Regions:** Supabase global edge network (US-East, Europe, Asia-Pacific)
+**Deployment Host and Regions:** 
+- Mobile Apps: iOS App Store & Google Play Store via EAS
+- Backend: Supabase US-East region (primary), with potential EU expansion post-MVP
+- Edge Functions: Globally distributed via Supabase's infrastructure
 
 ## Repository Structure
 
-**Structure:** Monorepo with shared packages
-**Monorepo Tool:** npm workspaces (built into npm 7+)
-**Package Organization:** Separation between mobile app, shared types/utilities, and potential future web dashboard
-
-```
-ai-habit-tracker/
-├── apps/
-│   └── mobile/          # Expo React Native app
-├── packages/
-│   ├── shared/          # Shared types and utilities
-│   └── api-client/      # Supabase client configuration
-└── supabase/            # Database migrations and edge functions
-```
+**Structure:** Monorepo with organized package structure
+**Monorepo Tool:** NPM Workspaces (built-in, no additional tooling complexity)
+**Package Organization:** 
+- `/app` - Expo React Native application
+- `/supabase` - Edge Functions and database migrations
+- `/shared` - Shared TypeScript types and utilities
+- `/docs` - Architecture and product documentation
 
 ## High Level Architecture Diagram
 
 ```mermaid
 graph TB
-    User[Mobile User] --> Mobile[Expo Mobile App]
-    Mobile --> EdgeFn[Supabase Edge Functions]
-    Mobile --> Auth[Supabase Auth]
-    Mobile --> DB[(PostgreSQL Database)]
-    Mobile --> Storage[Supabase Storage]
-    
-    EdgeFn --> OpenAI[OpenAI API]
-    EdgeFn --> DB
-    
-    
-    subgraph "Supabase Platform"
-        Auth
-        DB
-        Storage
-        EdgeFn
-        RT[Real-time Engine]
+    subgraph "Client Layer"
+        iOS[iOS App<br/>Expo]
+        Android[Android App<br/>Expo]
     end
     
-    DB --> RT
-    RT --> Mobile
+    subgraph "API Gateway"
+        SB_API[Supabase API Gateway<br/>Rate Limiting & Auth]
+    end
+    
+    subgraph "Backend Services"
+        Edge[Supabase Edge Functions]
+        Auth[Supabase Auth]
+        RT[Realtime Subscriptions]
+    end
+    
+    subgraph "Data Layer"
+        PG[(PostgreSQL<br/>User Data & Roadmaps)]
+        Storage[Supabase Storage<br/>Profile Images]
+    end
+    
+    subgraph "External Services"
+        OpenAI[OpenAI GPT-4<br/>Roadmap Generation]
+        Push[Expo Push<br/>Notifications]
+    end
+    
+    iOS --> SB_API
+    Android --> SB_API
+    
+    SB_API --> Auth
+    SB_API --> Edge
+    SB_API --> RT
+    
+    Edge --> PG
+    Edge --> OpenAI
+    Auth --> PG
+    RT --> PG
+    
+    iOS -.-> Push
+    Android -.-> Push
+    
+    style iOS fill:#e1f5fe
+    style Android fill:#e1f5fe
+    style Edge fill:#f3e5f5
+    style PG fill:#fff3e0
 ```
 
 ## Architectural Patterns
 
-- **Mobile-First Progressive Web Architecture:** Expo-based mobile app with potential web dashboard - _Rationale:_ Aligns with PRD's mobile-first approach while keeping web options open
-- **Serverless-First Backend:** Supabase Edge Functions for AI processing and business logic - _Rationale:_ Reduces operational complexity and scales automatically with usage
-- **Online-First Data Access:** Direct Supabase API calls with graceful error handling - _Rationale:_ Simplified architecture for MVP, most users have reliable connectivity for brief daily check-ins
-- **Event-Driven Real-time Updates:** PostgreSQL triggers with real-time subscriptions - _Rationale:_ Enables responsive UI updates and future collaborative features
-- **API Gateway Pattern:** Supabase Auto-API with Row Level Security - _Rationale:_ Reduces boilerplate while maintaining security through database-level policies
-- **Repository Pattern:** Data access abstraction over Supabase client - _Rationale:_ Enables testing and potential future migration flexibility
+- **Offline-First Mobile Architecture:** Local SQLite caching with background sync to Supabase - _Rationale:_ Users need reliable daily habit tracking even without connectivity
+- **Serverless Functions Pattern:** Stateless Edge Functions for AI operations and complex logic - _Rationale:_ Scales automatically with user growth while minimizing operational overhead
+- **Backend-as-a-Service (BaaS):** Supabase provides managed infrastructure - _Rationale:_ Accelerates MVP development timeline from 6+ months to 3-4 months
+- **Repository Pattern:** Abstract data access through service layers - _Rationale:_ Enables testing and potential future migration flexibility
+- **Component-Based UI:** Reusable React Native components with TypeScript - _Rationale:_ Maintainability and type safety across the mobile application
+- **Event-Driven Updates:** Real-time subscriptions for multi-device sync - _Rationale:_ Users may switch between devices and expect consistent state
+- **API Gateway Pattern:** Supabase API provides centralized entry point - _Rationale:_ Built-in auth, rate limiting, and monitoring without custom implementation
+- **Domain-Driven Design:** Clear separation between user goals, roadmaps, habits, and progress - _Rationale:_ Aligns code structure with business domain for clarity

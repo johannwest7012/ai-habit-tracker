@@ -1,7 +1,9 @@
 # Next Steps
 
 ## UX Expert Prompt
-Create detailed front-end specifications and UI wireframes based on the User Interface Design Goals and Core Screens identified in this PRD. Focus on the binary interaction paradigms and celebratory feedback systems that drive user engagement.
 
-## Architect Prompt  
-Use this comprehensive PRD with its functional requirements, technical assumptions, and detailed epics to create the complete system architecture. All technology choices and constraints have been specified - translate these into detailed technical specifications and implementation guidance.
+Load `/BMad:agents:ux` and use this PRD to create comprehensive user experience designs. Focus on the conversational goal setup wizard, daily habit tracking interface, and roadmap visualization. Ensure the design supports the shame-free, growth-focused brand aesthetic while optimizing for mobile-first binary interactions.
+
+## Architect Prompt
+
+Load `/BMad:agents:dev` and use this PRD to create the technical architecture document. Begin with Epic 1 foundation setup focusing on Expo + Supabase integration, then design the AI roadmap generation system using Edge Functions and OpenAI GPT-4. Pay special attention to offline sync architecture for daily tracking and scalable data schema for flexible roadmap storage.

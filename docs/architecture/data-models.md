@@ -1,164 +1,185 @@
 # Data Models
 
-Based on PRD requirements, these are the core data models that represent the key business entities for the AI Habit Tracker:
+## User Model
 
-## User
-**Purpose:** Represents an individual user with their profile information and preferences
+**Purpose:** Core user account and authentication data
 
 **Key Attributes:**
-- `id`: string (UUID) - Unique user identifier from Supabase Auth
-- `email`: string - User's email address
-- `name`: string | null - Display name (optional)
-- `avatar_url`: string | null - Profile picture URL
-- `created_at`: Date - Account creation timestamp
-- `updated_at`: Date - Last profile update
-- `timezone`: string - User's timezone for habit scheduling
-- `notification_preferences`: NotificationSettings - Push notification preferences
+- id: UUID - Unique user identifier (Supabase Auth UUID)
+- email: string - User email for authentication
+- created_at: timestamp - Account creation date
+- profile_data: JSON - Flexible profile information (name, avatar_url, timezone)
+- subscription_tier: enum - 'free' | 'premium' (for future monetization)
+- notification_preferences: JSON - Push notification settings
 
 **TypeScript Interface:**
 ```typescript
 interface User {
   id: string;
   email: string;
-  name: string | null;
-  avatar_url: string | null;
   created_at: Date;
-  updated_at: Date;
-  timezone: string;
-  notification_preferences: NotificationSettings;
-}
-
-interface NotificationSettings {
-  daily_reminder: boolean;
-  weekly_summary: boolean;
-  level_up_celebration: boolean;
-  preferred_time: string; // HH:MM format
+  profile_data: {
+    name?: string;
+    avatar_url?: string;
+    timezone: string;
+    onboarding_completed: boolean;
+  };
+  subscription_tier: 'free' | 'premium';
+  notification_preferences: {
+    daily_reminder: boolean;
+    reminder_time: string; // "09:00"
+    weekly_summary: boolean;
+  };
 }
 ```
 
 **Relationships:**
-- One-to-many with Journey (a user can have multiple goals/journeys)
+- Has many Goals
+- Has many HabitLogs
 
-## Journey
-**Purpose:** Represents a user's long-term goal broken down by AI into a structured roadmap
+## Goal Model
+
+**Purpose:** Represents a long-term user goal with AI-generated roadmap
 
 **Key Attributes:**
-- `id`: string (UUID) - Unique journey identifier
-- `user_id`: string - Foreign key to User
-- `title`: string - Goal title (e.g., "Learn Spanish", "Get Fit")
-- `description`: string - Original goal description from user
-- `ai_generated_plan`: AIGeneratedPlan - Complete roadmap from AI
-- `current_stage_id`: string | null - Current active stage
-- `status`: JourneyStatus - Current journey state
-- `created_at`: Date - Journey creation date
-- `updated_at`: Date - Last modification
-- `completed_at`: Date | null - Completion timestamp
+- id: UUID - Unique goal identifier
+- user_id: UUID - Owner of the goal
+- title: string - User's stated goal ("Learn Spanish")
+- description: text - Detailed goal context
+- target_date: date - Expected completion date
+- roadmap: JSON - AI-generated progression plan
+- status: enum - 'active' | 'paused' | 'completed' | 'abandoned'
+- created_at: timestamp - Goal creation date
 
 **TypeScript Interface:**
 ```typescript
-interface Journey {
+interface Goal {
   id: string;
   user_id: string;
   title: string;
   description: string;
-  ai_generated_plan: AIGeneratedPlan;
-  current_stage_id: string | null;
-  status: JourneyStatus;
+  target_date: Date;
+  roadmap: Roadmap;
+  status: 'active' | 'paused' | 'completed' | 'abandoned';
   created_at: Date;
-  updated_at: Date;
-  completed_at: Date | null;
+  current_stage_id?: string;
 }
 
-type JourneyStatus = 'active' | 'paused' | 'completed' | 'abandoned';
-
-interface AIGeneratedPlan {
-  total_stages: number;
-  estimated_duration_weeks: number;
+interface Roadmap {
+  stages: WeeklyStage[];
+  total_weeks: number;
   difficulty_level: 'beginner' | 'intermediate' | 'advanced';
-  ai_reasoning: string;
+  ai_generation_params: {
+    model: string;
+    prompt_version: string;
+    generated_at: Date;
+  };
 }
 ```
 
 **Relationships:**
-- Many-to-one with User
-- One-to-many with Stage
+- Belongs to User
+- Has many WeeklyStages
+- Has many HabitLogs (through stages)
 
-## Stage
-**Purpose:** Represents a weekly unit in the journey with specific success criteria
+## WeeklyStage Model
+
+**Purpose:** Represents one week's habits and progression within a goal
 
 **Key Attributes:**
-- `id`: string (UUID) - Unique stage identifier
-- `journey_id`: string - Foreign key to Journey
-- `stage_number`: number - Sequential order (1, 2, 3...)
-- `title`: string - Week's focus (e.g., "Week 1: Basic Vocabulary")
-- `description`: string - What user should accomplish this week
-- `daily_habit_prompt`: string - The yes/no question for daily tracking
-- `success_criteria`: SuccessCriteria - Rules for advancing to next stage
-- `status`: StageStatus - Current stage state
-- `started_at`: Date | null - When user began this stage
-- `completed_at`: Date | null - When stage was completed
+- id: UUID - Unique stage identifier
+- goal_id: UUID - Parent goal
+- week_number: integer - Sequential week (1, 2, 3...)
+- title: string - Stage name ("Foundation Building")
+- description: text - What user will achieve this week
+- daily_habit: JSON - The specific daily action
+- success_criteria: JSON - Completion requirements
+- status: enum - 'upcoming' | 'active' | 'completed' | 'failed'
 
 **TypeScript Interface:**
 ```typescript
-interface Stage {
+interface WeeklyStage {
   id: string;
-  journey_id: string;
-  stage_number: number;
+  goal_id: string;
+  week_number: number;
   title: string;
   description: string;
-  daily_habit_prompt: string;
-  success_criteria: SuccessCriteria;
-  status: StageStatus;
-  started_at: Date | null;
-  completed_at: Date | null;
-}
-
-type StageStatus = 'upcoming' | 'active' | 'completed' | 'failed' | 'replanning';
-
-interface SuccessCriteria {
-  target_days_per_week: number; // e.g., 3 out of 7 days
-  required_consecutive_weeks: number; // e.g., 2 weeks in a row
+  daily_habit: {
+    action: string; // "Read Spanish for 15 minutes"
+    tips: string[]; // Helpful hints
+    skip_allowed: boolean; // Can user skip days
+  };
+  success_criteria: {
+    required_days: number; // e.g., 5 out of 7
+    total_days: number; // 7
+  };
+  status: 'upcoming' | 'active' | 'completed' | 'failed';
+  start_date?: Date;
+  end_date?: Date;
 }
 ```
 
 **Relationships:**
-- Many-to-one with Journey
-- One-to-many with Task (daily check-ins)
+- Belongs to Goal
+- Has many HabitLogs
 
-## Task
-**Purpose:** Represents a daily binary check-in (Yes/No/Skip) for habit tracking
+## HabitLog Model
+
+**Purpose:** Records daily habit completion (the core tracking data)
 
 **Key Attributes:**
-- `id`: string (UUID) - Unique task identifier
-- `stage_id`: string - Foreign key to Stage
-- `user_id`: string - Foreign key to User (for easy querying)
-- `date`: Date - The specific day this task is for
-- `response`: TaskResponse | null - User's response (null if not completed)
-- `completed_at`: Date | null - When user responded
-- `created_at`: Date - Task creation timestamp
+- id: UUID - Unique log identifier
+- user_id: UUID - User who logged
+- stage_id: UUID - Associated weekly stage
+- date: date - Date of habit execution
+- status: enum - 'completed' | 'skipped' | 'missed'
+- logged_at: timestamp - When user recorded this
+- notes: text - Optional user notes
 
 **TypeScript Interface:**
 ```typescript
-interface Task {
+interface HabitLog {
   id: string;
-  stage_id: string;
   user_id: string;
-  date: Date;
-  response: TaskResponse | null;
-  completed_at: Date | null;
-  created_at: Date;
+  stage_id: string;
+  date: string; // "2024-03-15"
+  status: 'completed' | 'skipped' | 'missed';
+  logged_at: Date;
+  notes?: string;
 }
-
-type TaskResponse = 'yes' | 'no' | 'skip';
 ```
 
 **Relationships:**
-- Many-to-one with Stage
-- Many-to-one with User
+- Belongs to User
+- Belongs to WeeklyStage
 
-**Design Rationale:**
-- **UUID Primary Keys:** Ensures global uniqueness and security (non-guessable IDs)
-- **Denormalized user_id in Task:** Enables efficient user-specific queries without joins
-- **JSON Fields for Metadata:** AI plan data and notification preferences stored as JSON for flexibility
-- **Enum Types:** Clear, type-safe status values that prevent invalid states
-- **Nullable Fields:** Supports optional data and different lifecycle states
+## Recalibration Model
+
+**Purpose:** Tracks AI adjustments when users struggle with stages
+
+**Key Attributes:**
+- id: UUID - Unique recalibration identifier
+- goal_id: UUID - Affected goal
+- trigger_stage_id: UUID - Stage that triggered recalibration
+- original_roadmap: JSON - Roadmap before adjustment
+- new_roadmap: JSON - Adjusted roadmap
+- reason: string - Why recalibration occurred
+- created_at: timestamp - When adjustment happened
+
+**TypeScript Interface:**
+```typescript
+interface Recalibration {
+  id: string;
+  goal_id: string;
+  trigger_stage_id: string;
+  original_roadmap: Roadmap;
+  new_roadmap: Roadmap;
+  reason: 'repeated_failure' | 'user_requested' | 'pace_adjustment';
+  created_at: Date;
+  accepted_by_user: boolean;
+}
+```
+
+**Relationships:**
+- Belongs to Goal
+- References WeeklyStage (trigger)

@@ -4,15 +4,17 @@
 
 **Prerequisites:**
 ```bash
-# Install Node.js 18+ and npm
-node --version  # Should be 18+
-npm --version   # Should be 8+
+# Required tools
+node --version  # v18+ required
+npm --version   # v9+ required
+git --version
 
 # Install Expo CLI globally
-npm install -g @expo/cli
+npm install -g expo-cli eas-cli
 
 # Install Supabase CLI
-npm install -g supabase
+brew install supabase/tap/supabase  # macOS
+# or npm install -g supabase
 ```
 
 **Initial Setup:**
@@ -21,49 +23,64 @@ npm install -g supabase
 git clone https://github.com/your-org/ai-habit-tracker.git
 cd ai-habit-tracker
 
-# Install all dependencies (monorepo)
+# Install dependencies
 npm install
 
-# Set up environment variables
+# Setup environment variables
 cp .env.example .env.local
+# Edit .env.local with your Supabase and OpenAI keys
 
-# Initialize Supabase project
+# Initialize Supabase locally
 supabase init
-supabase start
+supabase start  # Starts local Supabase instance
 
 # Run database migrations
-supabase db reset
+supabase db push
+
+# Start development
+npm run dev
 ```
 
 **Development Commands:**
 ```bash
-# Start mobile development server
-npm run dev:mobile
+# Start all services (runs concurrently)
+npm run dev
 
-# Start Supabase local development
-npm run dev:supabase
+# Start frontend only
+npm run dev:app
 
-# Run all tests
+# Start Supabase functions only
+npm run dev:functions
+
+# Run tests
 npm run test
+npm run test:app      # Frontend tests
+npm run test:functions # Backend tests
+
+# Linting and formatting
+npm run lint
+npm run format
 
 # Type checking
-npm run type-check
+npm run typecheck
 
-# Linting
-npm run lint
+# Build for production
+npm run build
 ```
 
 ## Environment Configuration
 
 **Required Environment Variables:**
-
 ```bash
-# Mobile App (.env.local)
-EXPO_PUBLIC_SUPABASE_URL=your-supabase-url
-EXPO_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
-EXPO_PUBLIC_OPENAI_API_KEY=your-openai-key
+# Frontend (.env.local)
+EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 
-# Supabase Edge Functions (.env)
-OPENAI_API_KEY=your-openai-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+# Backend (.env)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-key
+OPENAI_API_KEY=sk-your-openai-key
+
+# Shared
+DATABASE_URL=postgresql://postgres:password@localhost:54322/postgres
 ```
