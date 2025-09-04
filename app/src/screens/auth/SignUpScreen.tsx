@@ -13,18 +13,21 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { AuthStackScreenProps } from '../../navigation/types';
 import { useAuth } from '../../hooks/useAuth';
 
-type Props = AuthStackScreenProps<'Login'>;
+type Props = AuthStackScreenProps<'SignUp'>;
 
-export const LoginScreen: React.FC<Props> = ({ navigation }) => {
+export const SignUpScreen: React.FC<Props> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [validationErrors, setValidationErrors] = useState<{
     email?: string;
     password?: string;
+    confirmPassword?: string;
   }>({});
 
-  const { signIn, resetPassword, isLoading, error, clearError } = useAuth();
+  const { signUp, isLoading, error, clearError } = useAuth();
 
   const validateEmail = (email: string): string | undefined => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -35,6 +38,17 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
   const validatePassword = (password: string): string | undefined => {
     if (!password) return 'Password is required';
+    if (password.length < 6) return 'Password must be at least 6 characters';
+    if (!/(?=.*[a-z])(?=.*[A-Z])/.test(password)) {
+      return 'Password must contain at least one uppercase and lowercase letter';
+    }
+    if (!/(?=.*\d)/.test(password)) return 'Password must contain at least one number';
+    return undefined;
+  };
+
+  const validateConfirmPassword = (confirmPassword: string, password: string): string | undefined => {
+    if (!confirmPassword) return 'Please confirm your password';
+    if (confirmPassword !== password) return 'Passwords do not match';
     return undefined;
   };
 
@@ -42,13 +56,14 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
     const errors = {
       email: validateEmail(email),
       password: validatePassword(password),
+      confirmPassword: validateConfirmPassword(confirmPassword, password),
     };
 
     setValidationErrors(errors);
     return !Object.values(errors).some(error => error !== undefined);
   };
 
-  const handleSignIn = async () => {
+  const handleSignUp = async () => {
     // Clear any previous auth errors
     clearError();
 
@@ -56,41 +71,31 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
-    const result = await signIn({ 
-      email: email.trim().toLowerCase(), 
-      password 
-    });
+    const result = await signUp({ email: email.trim().toLowerCase(), password });
 
     if (result.success) {
-      // Navigation will be handled by the RootNavigator auth state change
+      if (result.needsVerification) {
+        // Show email verification screen
+        Alert.alert(
+          'Check Your Email',
+          'We\'ve sent you a confirmation link. Please check your email and click the link to verify your account before signing in.',
+          [
+            {
+              text: 'OK',
+              onPress: () => navigation.navigate('Login'),
+            },
+          ]
+        );
+      } else {
+        // User is automatically signed in
+        // Navigation will be handled by the RootNavigator auth state change
+      }
     }
   };
 
-  const handleForgotPassword = async () => {
-    // Clear any previous auth errors
+  const handleNavigateToLogin = () => {
     clearError();
-
-    const emailError = validateEmail(email);
-    if (emailError) {
-      setValidationErrors({ email: emailError });
-      Alert.alert('Email Required', 'Please enter your email address first.');
-      return;
-    }
-
-    const result = await resetPassword({ email: email.trim().toLowerCase() });
-
-    if (result.success) {
-      Alert.alert(
-        'Password Reset Email Sent',
-        'Check your email for instructions to reset your password.',
-        [{ text: 'OK' }]
-      );
-    }
-  };
-
-  const handleNavigateToSignUp = () => {
-    clearError();
-    navigation.navigate('SignUp');
+    navigation.navigate('Login');
   };
 
   return (
@@ -103,8 +108,8 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
-          <Text style={styles.title}>Welcome Back</Text>
-          <Text style={styles.subtitle}>Sign in to continue tracking your habits</Text>
+          <Text style={styles.title}>Create Account</Text>
+          <Text style={styles.subtitle}>Join us to start tracking your habits</Text>
         </View>
 
         <View style={styles.form}>
@@ -148,6 +153,29 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
             disabled={isLoading}
           />
 
+          <Input
+            placeholder="Confirm Password"
+            value={confirmPassword}
+            onChangeText={(text) => {
+              setConfirmPassword(text);
+              if (validationErrors.confirmPassword) {
+                setValidationErrors(prev => ({ ...prev, confirmPassword: undefined }));
+              }
+            }}
+            secureTextEntry={!showConfirmPassword}
+            leftIcon={<Icon name="lock-outline" size={20} color="#666" />}
+            rightIcon={
+              <Icon
+                name={showConfirmPassword ? 'visibility-off' : 'visibility'}
+                size={20}
+                color="#666"
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+              />
+            }
+            errorMessage={validationErrors.confirmPassword}
+            disabled={isLoading}
+          />
+
           {error && (
             <View style={styles.errorContainer}>
               <Icon name="error" size={20} color="#f44336" />
@@ -156,29 +184,21 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
           )}
 
           <Button
-            title="Sign In"
-            onPress={handleSignIn}
+            title="Create Account"
+            onPress={handleSignUp}
             loading={isLoading}
             disabled={isLoading}
-            buttonStyle={styles.signInButton}
-            titleStyle={styles.signInButtonText}
-          />
-
-          <Button
-            title="Forgot Password?"
-            type="clear"
-            onPress={handleForgotPassword}
-            disabled={isLoading}
-            titleStyle={styles.forgotPasswordText}
+            buttonStyle={styles.signUpButton}
+            titleStyle={styles.signUpButtonText}
           />
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Don&apos;t have an account?</Text>
+          <Text style={styles.footerText}>Already have an account?</Text>
           <Button
-            title="Create Account"
+            title="Sign In"
             type="clear"
-            onPress={handleNavigateToSignUp}
+            onPress={handleNavigateToLogin}
             disabled={isLoading}
             titleStyle={styles.linkButtonText}
           />
@@ -231,20 +251,15 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     flex: 1,
   },
-  signInButton: {
+  signUpButton: {
     backgroundColor: '#2196F3',
     borderRadius: 8,
     paddingVertical: 12,
     marginHorizontal: 10,
-    marginBottom: 15,
   },
-  signInButtonText: {
+  signUpButtonText: {
     fontSize: 16,
     fontWeight: '600',
-  },
-  forgotPasswordText: {
-    color: '#666',
-    fontSize: 14,
   },
   footer: {
     alignItems: 'center',
