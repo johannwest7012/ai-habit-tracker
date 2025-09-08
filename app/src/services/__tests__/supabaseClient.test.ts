@@ -36,18 +36,10 @@ import {
 import type { SupabaseConnectionError } from '@shared/types/api';
 
 // Type the mocked createClient
-const mockCreateClient = createClient as jest.MockedFunction<
-  typeof createClient
->;
+const mockCreateClient = jest.mocked(createClient);
 
-// Mock Supabase client instance
-interface MockSupabaseClient {
-  auth: {
-    getSession: jest.Mock;
-  };
-}
-
-const mockSupabaseClient: MockSupabaseClient = {
+// Create a mock Supabase client with only the methods we need for testing
+const mockSupabaseClient = {
   auth: {
     getSession: jest.fn(),
   },
@@ -107,7 +99,8 @@ describe('Supabase Client Service', () => {
 
   describe('getSupabaseClient', () => {
     it('should initialize and return Supabase client', () => {
-      mockCreateClient.mockReturnValue(mockSupabaseClient);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      mockCreateClient.mockReturnValue(mockSupabaseClient as any);
 
       const client = getSupabaseClient();
 
@@ -126,7 +119,8 @@ describe('Supabase Client Service', () => {
     });
 
     it('should return same instance on subsequent calls (singleton)', () => {
-      mockCreateClient.mockReturnValue(mockSupabaseClient);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      mockCreateClient.mockReturnValue(mockSupabaseClient as any);
 
       const client1 = getSupabaseClient();
       const client2 = getSupabaseClient();
@@ -159,7 +153,8 @@ describe('Supabase Client Service', () => {
 
   describe('resetSupabaseClient', () => {
     it('should reset client instance for fresh initialization', () => {
-      mockCreateClient.mockReturnValue(mockSupabaseClient);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      mockCreateClient.mockReturnValue(mockSupabaseClient as any);
 
       // Get client instance
       const client1 = getSupabaseClient();
@@ -176,7 +171,8 @@ describe('Supabase Client Service', () => {
 
   describe('checkSupabaseHealth', () => {
     beforeEach(() => {
-      mockCreateClient.mockReturnValue(mockSupabaseClient);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      mockCreateClient.mockReturnValue(mockSupabaseClient as any);
       mockSupabaseClient.auth.getSession.mockResolvedValue({
         data: { session: null },
         error: null,
@@ -285,7 +281,8 @@ describe('Supabase Client Service', () => {
 
   describe('getSupabaseClientSafe', () => {
     it('should return success response with client when initialization succeeds', async () => {
-      mockCreateClient.mockReturnValue(mockSupabaseClient);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      mockCreateClient.mockReturnValue(mockSupabaseClient as any);
 
       const result = await getSupabaseClientSafe();
 
@@ -340,7 +337,8 @@ describe('Supabase Client Service', () => {
 
     it('should log health check errors for debugging', async () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-      mockCreateClient.mockReturnValue(mockSupabaseClient);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      mockCreateClient.mockReturnValue(mockSupabaseClient as any);
 
       const healthError = new Error('Health check failed');
       mockSupabaseClient.auth.getSession.mockRejectedValue(healthError);
