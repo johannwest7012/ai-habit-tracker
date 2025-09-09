@@ -7,7 +7,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getSupabaseClient } from '../services/api/supabaseClient';
 import type { ApiResponse } from '@shared/types/api';
-import type { WeeklyStage, HabitLog, Goal } from '@shared/types/data';
+import type { 
+  WeeklyStage, 
+  HabitLog, 
+  Goal, 
+  WeeklyStageData, 
+  HabitLogData,
+  dataMappers 
+} from '@shared/types/data';
 
 /**
  * Query key factory for habit tracking queries
@@ -73,7 +80,7 @@ const habitService = {
   /**
    * Get weekly stages for a goal
    */
-  async getWeeklyStages(goalId: string): Promise<ApiResponse<WeeklyStage[]>> {
+  async getWeeklyStages(goalId: string): Promise<ApiResponse<WeeklyStageData[]>> {
     try {
       const client = getSupabaseClient();
       const { data, error } = await client
@@ -94,9 +101,12 @@ const habitService = {
         };
       }
 
+      // Convert database format to TypeScript format
+      const mappedData = (data as WeeklyStage[]).map(dataMappers.weeklyStageFromDb);
+
       return {
         success: true,
-        data: data as WeeklyStage[],
+        data: mappedData,
         message: 'Weekly stages fetched successfully',
       };
     } catch (error) {
@@ -115,7 +125,7 @@ const habitService = {
   /**
    * Get habit logs for a specific date
    */
-  async getHabitLogsByDate(date: string): Promise<ApiResponse<HabitLog[]>> {
+  async getHabitLogsByDate(date: string): Promise<ApiResponse<HabitLogData[]>> {
     try {
       const client = getSupabaseClient();
       const { data, error } = await client
@@ -137,9 +147,12 @@ const habitService = {
         };
       }
 
+      // Convert database format to TypeScript format
+      const mappedData = (data as HabitLog[]).map(dataMappers.habitLogFromDb);
+
       return {
         success: true,
-        data: data as HabitLog[],
+        data: mappedData,
         message: 'Habit logs fetched successfully',
       };
     } catch (error) {
@@ -159,13 +172,22 @@ const habitService = {
    * Log a habit completion
    */
   async logHabit(
-    habitData: Omit<HabitLog, 'id' | 'created_at' | 'updated_at'>
-  ): Promise<ApiResponse<HabitLog>> {
+    habitData: Omit<HabitLogData, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<ApiResponse<HabitLogData>> {
     try {
       const client = getSupabaseClient();
+      
+      // Convert TypeScript format to database format
+      const dbData = dataMappers.habitLogToDb({
+        ...habitData,
+        id: '', // Will be ignored
+        createdAt: new Date(), // Will be set by database
+        updatedAt: new Date(), // Will be set by database
+      });
+      
       const { data, error } = await client
         .from('habit_logs')
-        .insert(habitData)
+        .insert(dbData)
         .select()
         .single();
 
@@ -181,9 +203,12 @@ const habitService = {
         };
       }
 
+      // Convert database response back to TypeScript format
+      const mappedData = dataMappers.habitLogFromDb(data as HabitLog);
+
       return {
         success: true,
-        data: data as HabitLog,
+        data: mappedData,
         message: 'Habit logged successfully',
       };
     } catch (error) {
@@ -306,16 +331,16 @@ export function useLogHabit() {
 
       // Optimistically update to the new value
       if (previousLogs) {
-        const tempLog: HabitLog = {
+        const tempLog: HabitLogData = {
           id: `temp-${Date.now()}`,
           ...newHabitLog,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
         };
 
         queryClient.setQueryData(
           queryKey,
-          (old: ApiResponse<HabitLog[]> | undefined) => {
+          (old: ApiResponse<HabitLogData[]> | undefined) => {
             if (!old) return old;
             return {
               ...old,

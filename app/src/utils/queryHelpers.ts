@@ -303,6 +303,65 @@ export const retryHelpers = {
 };
 
 /**
+ * Network Retry Configuration Documentation
+ * 
+ * React Query v5 retry behavior follows these patterns:
+ * 
+ * ## Retry Strategy by Error Type
+ * 
+ * ### Authentication Errors (401, 403, auth failures)
+ * - **Retry Count**: 0 (no retries)
+ * - **Rationale**: Auth errors typically require user intervention (re-login)
+ * - **Handled by**: retryHelpers.authRetry
+ * 
+ * ### Network Errors (connection failures, fetch errors)
+ * - **Retry Count**: Up to 3 attempts
+ * - **Backoff**: Exponential (1s, 2s, 4s)
+ * - **Rationale**: Temporary network issues often resolve quickly
+ * - **Handled by**: retryHelpers.defaultRetry
+ * 
+ * ### Server Errors (500, 502, 503, 504)
+ * - **Retry Count**: Up to 3 attempts for queries, 1 for mutations
+ * - **Backoff**: Exponential with jitter
+ * - **Rationale**: Server issues may be temporary, but mutations are more sensitive
+ * 
+ * ### Timeout Errors
+ * - **Retry Count**: Up to 3 attempts
+ * - **Timeout**: 10s for queries, 30s for mutations
+ * - **Rationale**: Network latency varies, especially on mobile
+ * 
+ * ## Configuration Usage
+ * 
+ * ```typescript
+ * // Apply to specific queries
+ * useQuery({
+ *   queryKey: ['data'],
+ *   queryFn: fetchData,
+ *   ...queryConfigPresets.userData, // Uses defaultRetry
+ * });
+ * 
+ * // Apply to auth queries (no retries on auth errors)
+ * useQuery({
+ *   queryKey: ['session'],
+ *   queryFn: getSession,
+ *   ...queryConfigPresets.authentication, // Uses authRetry
+ * });
+ * 
+ * // Apply to mutations with offline support
+ * useMutation({
+ *   mutationFn: logHabit,
+ *   ...mutationConfigPresets.withOfflineSupport,
+ * });
+ * ```
+ * 
+ * ## Offline Behavior
+ * 
+ * - **networkMode: 'offlineFirst'**: Queries pause when offline, resume when online
+ * - **Persistent Cache**: Failed queries are cached and retried on reconnection
+ * - **Background Sync**: Automatic synchronization when network is restored
+ */
+
+/**
  * React Query configuration presets
  */
 export const queryConfigPresets = {

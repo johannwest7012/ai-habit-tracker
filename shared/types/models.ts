@@ -50,4 +50,14 @@ export interface Goal {
 
 export type HabitFrequency = 'daily' | 'weekly' | 'monthly';
 
-export type WeeklyStage = 'week1' | 'week2' | 'week3' | 'week4' | 'maintenance';
+export interface WeeklyStage {
+  id: string;
+  goalId: string;
+  weekNumber: number;
+  title: string;
+  description?: string;
+  habits: string[];
+  isCompleted: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
