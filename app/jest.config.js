@@ -28,8 +28,9 @@ module.exports = {
     '^@constants/(.*)$': '<rootDir>/src/constants/$1',
     '^@navigation/(.*)$': '<rootDir>/src/navigation/$1',
     '^@shared/(.*)$': '<rootDir>/../shared/$1',
+    '\\.(png|jpg|jpeg|gif|svg)$': 'jest-transform-stub',
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(react-native|@react-native|@expo|expo|expo-status-bar|@testing-library/react-native|react-native-vector-icons)/)',
+    'node_modules/(?!(react-native|@react-native|@expo|expo|expo-status-bar|@testing-library/react-native|react-native-vector-icons|@react-navigation)/)',
   ],
 };
