@@ -1,7 +1,13 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../../../shared/types/navigation';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import type {
+  RootStackParamList,
+  AuthStackParamList,
+  OnboardingStackParamList,
+  MainTabParamList,
+} from '../../../shared/types/navigation';
 
 // Auth Screens
 import SignInScreen from '../screens/auth/SignInScreen';
@@ -18,6 +24,9 @@ import JourneyScreen from '../screens/main/JourneyScreen';
 import ProfileScreen from '../screens/main/ProfileScreen';
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
+const AuthStack = createNativeStackNavigator<AuthStackParamList>();
+const OnboardingStack = createNativeStackNavigator<OnboardingStackParamList>();
+const MainTab = createBottomTabNavigator<MainTabParamList>();
 
 export default function RootNavigator() {
   return (
@@ -53,8 +62,6 @@ export default function RootNavigator() {
 
 // Auth Stack Navigator
 function AuthNavigator() {
-  const AuthStack = createNativeStackNavigator();
-
   return (
     <AuthStack.Navigator screenOptions={{ headerShown: true }}>
       <AuthStack.Screen name="SignIn" component={SignInScreen} />
@@ -65,8 +72,6 @@ function AuthNavigator() {
 
 // Onboarding Stack Navigator
 function OnboardingNavigator() {
-  const OnboardingStack = createNativeStackNavigator();
-
   return (
     <OnboardingStack.Navigator screenOptions={{ headerShown: true }}>
       <OnboardingStack.Screen name="Welcome" component={WelcomeScreen} />
@@ -75,16 +80,20 @@ function OnboardingNavigator() {
   );
 }
 
-// Main Tabs Navigator (simplified for now - will be enhanced in future stories)
+// Main Tabs Navigator - Now properly using tab navigation
 function MainTabsNavigator() {
-  const MainStack = createNativeStackNavigator();
-
   return (
-    <MainStack.Navigator screenOptions={{ headerShown: true }}>
-      <MainStack.Screen name="Today" component={TodayScreen} />
-      <MainStack.Screen name="Progress" component={ProgressScreen} />
-      <MainStack.Screen name="Journey" component={JourneyScreen} />
-      <MainStack.Screen name="Profile" component={ProfileScreen} />
-    </MainStack.Navigator>
+    <MainTab.Navigator
+      screenOptions={{
+        headerShown: true,
+        tabBarActiveTintColor: '#007AFF',
+        tabBarInactiveTintColor: '#8E8E93',
+      }}
+    >
+      <MainTab.Screen name="Today" component={TodayScreen} />
+      <MainTab.Screen name="Progress" component={ProgressScreen} />
+      <MainTab.Screen name="Journey" component={JourneyScreen} />
+      <MainTab.Screen name="Profile" component={ProfileScreen} />
+    </MainTab.Navigator>
   );
 }
