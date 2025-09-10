@@ -46,7 +46,10 @@ so that I can handle API calls, caching, and loading states consistently.
 3. Error and loading state handling patterns defined
 4. Offline support and retry policies configured
 
-## Story 1.5: Error Handling & Monitoring
+~~## Story 1.5: Error Handling & Monitoring~~
+STORY 1.5 IS BEING SKIPPED FOR BEING TOO PROBLEMATIC TO IMPLEMENT SUCCESSFULLY. 
+PROCEED TO THE NEXT STORY AFTER.
+
 As a developer,
 I want error boundaries and logging implemented,
 so that I can catch and track issues during development and production.
