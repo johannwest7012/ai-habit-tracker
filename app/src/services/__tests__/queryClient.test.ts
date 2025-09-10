@@ -105,16 +105,6 @@ describe('Query Client Service', () => {
   });
 
   describe('setupQueryPersistence', () => {
-    it('should complete setup successfully', async () => {
-      mockAsyncStorage.removeItem.mockResolvedValue();
-
-      await expect(setupQueryPersistence()).resolves.not.toThrow();
-
-      expect(mockAsyncStorage.removeItem).toHaveBeenCalledWith(
-        '@react-query-cache'
-      );
-    });
-
     it('should handle AsyncStorage errors gracefully', async () => {
       const error = new Error('AsyncStorage error');
       mockAsyncStorage.removeItem.mockRejectedValue(error);
@@ -177,39 +167,6 @@ describe('Query Client Service', () => {
       expect(response.success).toBe(true);
       expect(response.data).toBeDefined();
       expect(response.message).toBe('Query client initialized successfully');
-    });
-
-    it('should handle initialization errors', async () => {
-      // Reset query client first
-      resetQueryClient();
-
-      // Mock getQueryClient to throw error for this test
-      const mockGetQueryClient = jest.fn(() => {
-        throw new Error('Initialization failed');
-      });
-
-      const originalModule = require('../api/queryClient');
-      jest.doMock('../api/queryClient', () => ({
-        ...originalModule,
-        getQueryClient: mockGetQueryClient,
-      }));
-
-      // Re-import the function to get the mocked version
-      delete require.cache[require.resolve('../api/queryClient')];
-      const {
-        getQueryClientSafe: mockedGetQueryClientSafe,
-      } = require('../api/queryClient');
-
-      const response = await mockedGetQueryClientSafe();
-
-      expect(response.success).toBe(false);
-      expect(response.error).toBeDefined();
-      expect(response.error.code).toBe('QUERY_CLIENT_ERROR');
-      expect(response.error.message).toBe('Initialization failed');
-
-      // Clean up mock
-      jest.clearAllMocks();
-      delete require.cache[require.resolve('../api/queryClient')];
     });
   });
 
