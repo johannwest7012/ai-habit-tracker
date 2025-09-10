@@ -1,54 +1,99 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { RootStackParamList, AuthStackParamList, MainTabParamList } from './types';
-import { LoginScreen } from '../screens/auth/LoginScreen';
-import { TodayScreen } from '../screens/main/TodayScreen';
-import { HabitsScreen } from '../screens/main/HabitsScreen';
-import { GoalsScreen } from '../screens/main/GoalsScreen';
-import { ProfileScreen } from '../screens/main/ProfileScreen';
-import { OnboardingScreen } from '../screens/onboarding/OnboardingScreen';
-import { useAuthStore } from '../stores/authStore';
+import type {
+  RootStackParamList,
+  AuthStackParamList,
+  OnboardingStackParamList,
+  MainTabParamList,
+} from '../../../shared/types/navigation';
 
-const Stack = createStackNavigator<RootStackParamList>();
-const AuthStack = createStackNavigator<AuthStackParamList>();
-const Tab = createBottomTabNavigator<MainTabParamList>();
+// Auth Screens
+import SignInScreen from '../screens/auth/SignInScreen';
+import SignUpScreen from '../screens/auth/SignUpScreen';
 
-const AuthNavigator = () => {
-  return (
-    <AuthStack.Navigator screenOptions={{ headerShown: false }}>
-      <AuthStack.Screen name="Login" component={LoginScreen} />
-    </AuthStack.Navigator>
-  );
-};
+// Onboarding Screens
+import WelcomeScreen from '../screens/onboarding/WelcomeScreen';
+import GoalSetupScreen from '../screens/onboarding/GoalSetupScreen';
 
-const MainNavigator = () => {
-  return (
-    <Tab.Navigator screenOptions={{ headerShown: false }}>
-      <Tab.Screen name="Today" component={TodayScreen} />
-      <Tab.Screen name="Habits" component={HabitsScreen} />
-      <Tab.Screen name="Goals" component={GoalsScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
-    </Tab.Navigator>
-  );
-};
+// Main Screens
+import TodayScreen from '../screens/main/TodayScreen';
+import ProgressScreen from '../screens/main/ProgressScreen';
+import JourneyScreen from '../screens/main/JourneyScreen';
+import ProfileScreen from '../screens/main/ProfileScreen';
 
-export const RootNavigator = () => {
-  const { user } = useAuthStore();
-  
+const RootStack = createNativeStackNavigator<RootStackParamList>();
+const AuthStack = createNativeStackNavigator<AuthStackParamList>();
+const OnboardingStack = createNativeStackNavigator<OnboardingStackParamList>();
+const MainTab = createBottomTabNavigator<MainTabParamList>();
+
+export default function RootNavigator() {
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {user ? (
-          <Stack.Screen name="Main" component={MainNavigator} />
-        ) : (
-          <>
-            <Stack.Screen name="Auth" component={AuthNavigator} />
-            <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-          </>
-        )}
-      </Stack.Navigator>
+      <RootStack.Navigator
+        initialRouteName="Auth"
+        screenOptions={{
+          headerShown: true,
+        }}
+      >
+        {/* Auth Stack */}
+        <RootStack.Screen
+          name="Auth"
+          component={AuthNavigator}
+          options={{ headerShown: false }}
+        />
+        {/* Onboarding Stack */}
+        <RootStack.Screen
+          name="Onboarding"
+          component={OnboardingNavigator}
+          options={{ headerShown: false }}
+        />
+        {/* Main Tabs */}
+        <RootStack.Screen
+          name="MainTabs"
+          component={MainTabsNavigator}
+          options={{ headerShown: false }}
+        />
+      </RootStack.Navigator>
     </NavigationContainer>
   );
-};
+}
+
+// Auth Stack Navigator
+function AuthNavigator() {
+  return (
+    <AuthStack.Navigator screenOptions={{ headerShown: true }}>
+      <AuthStack.Screen name="SignIn" component={SignInScreen} />
+      <AuthStack.Screen name="SignUp" component={SignUpScreen} />
+    </AuthStack.Navigator>
+  );
+}
+
+// Onboarding Stack Navigator
+function OnboardingNavigator() {
+  return (
+    <OnboardingStack.Navigator screenOptions={{ headerShown: true }}>
+      <OnboardingStack.Screen name="Welcome" component={WelcomeScreen} />
+      <OnboardingStack.Screen name="GoalSetup" component={GoalSetupScreen} />
+    </OnboardingStack.Navigator>
+  );
+}
+
+// Main Tabs Navigator - Now properly using tab navigation
+function MainTabsNavigator() {
+  return (
+    <MainTab.Navigator
+      screenOptions={{
+        headerShown: true,
+        tabBarActiveTintColor: '#007AFF',
+        tabBarInactiveTintColor: '#8E8E93',
+      }}
+    >
+      <MainTab.Screen name="Today" component={TodayScreen} />
+      <MainTab.Screen name="Progress" component={ProgressScreen} />
+      <MainTab.Screen name="Journey" component={JourneyScreen} />
+      <MainTab.Screen name="Profile" component={ProfileScreen} />
+    </MainTab.Navigator>
+  );
+}

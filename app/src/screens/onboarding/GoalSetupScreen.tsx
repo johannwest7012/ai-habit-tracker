@@ -1,11 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
-export default function TodayScreen() {
+export default function GoalSetupScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Today Screen</Text>
-      <Text style={styles.subtitle}>Daily habits placeholder</Text>
+      <Text style={styles.title}>Goal Setup Screen</Text>
+      <Text style={styles.subtitle}>Goal configuration placeholder</Text>
     </View>
   );
 }

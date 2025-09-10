@@ -1,11 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
-export default function TodayScreen() {
+export default function SignUpScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Today Screen</Text>
-      <Text style={styles.subtitle}>Daily habits placeholder</Text>
+      <Text style={styles.title}>Sign Up Screen</Text>
+      <Text style={styles.subtitle}>Registration placeholder</Text>
     </View>
   );
 }

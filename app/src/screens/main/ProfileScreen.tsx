@@ -1,25 +1,29 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { MainTabScreenProps } from '../../navigation/types';
 
-type Props = MainTabScreenProps<'Profile'>;
-
-export const ProfileScreen: React.FC<Props> = () => {
+export default function ProfileScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Profile Screen</Text>
+      <Text style={styles.subtitle}>User profile placeholder</Text>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#fff',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
   },
 });
