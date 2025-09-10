@@ -1,5 +1,11 @@
 # Testing Strategy
 
+Tests are important, but the developer should also keep in mind that creating overly complex testing can sometimes lead to spending more time having to fix and maintain the tests compared to whatever benefits the tests actually provide. 
+
+Additionally there have been multiple instances where in implementing stories in this project, developers have sacrified the integrity of the actual product and code, in order to try to get a test work. DON'T DO THAT. 
+
+At the end of the day, tests are important, but they are secondary priorities to the product itself. 
+
 ## Testing Pyramid
 
 ```
