@@ -1,97 +1,103 @@
-# Testing Strategy
+# Minimalist Testing Strategy
 
-Tests are important, but the developer should also keep in mind that creating overly complex testing can sometimes lead to spending more time having to fix and maintain the tests compared to whatever benefits the tests actually provide. 
+## Core Philosophy: "Test the Money, Not the Framework"
 
-Additionally there have been multiple instances where in implementing stories in this project, developers have sacrified the integrity of the actual product and code, in order to try to get a test work. DON'T DO THAT. 
+**THE PROBLEM:** Testing was consuming 70-80% of development time, creating a massive bottleneck that was slowing MVP delivery while providing questionable value.
 
-At the end of the day, tests are important, but they are secondary priorities to the product itself. 
+**THE SOLUTION:** Drastically reduce testing to only the most critical business logic that could cause data corruption or user-blocking failures.
 
-## Testing Pyramid
+## Testing Rules
 
+### ✅ What TO Test (5-10 tests maximum):
+1. **Database Functions** - `check_weekly_progress()`, `log_habit()` (data corruption risk)
+2. **OpenAI Response Parsing** - Roadmap JSON structure validation (user blocking)
+3. **Progress Calculation Logic** - Week completion algorithm (core business logic)
+4. **Authentication Edge Cases** - Token validation in Edge Functions (security)
+
+### ❌ What NOT TO Test:
+- **React Native Components** - Trust Expo's framework testing
+- **Navigation** - Manual testing with Expo Go is faster
+- **UI Interactions** - Visual QA replaces automated testing
+- **API Client Calls** - Trust Supabase SDK
+- **State Management** - Trust React Query/Zustand
+- **Integration Tests** - Manual end-to-end testing instead
+
+## Testing Guidelines
+
+### The 1-Hour Rule
+If a test takes more than 1 hour to write and debug, **skip it**. The time is better spent on features.
+
+### No Complex Mocking
+If it requires mocking Supabase, React Navigation, or Expo modules, **don't test it**. The setup overhead isn't worth it.
+
+### Manual Over Automated
+- Use **Expo Go** for rapid UI testing on real devices
+- Use **Supabase Dashboard** to verify data operations
+- Use **console logs** for debugging instead of test assertions
+
+## Minimal Test Setup
+
+**Only test pure functions with simple inputs/outputs:**
+
+```typescript
+// utils/__tests__/progressCalculator.test.ts
+import { calculateWeeklyProgress } from '../progressCalculator';
+
+describe('calculateWeeklyProgress', () => {
+  it('marks week complete with 5+ completed days', () => {
+    const logs = [
+      { status: 'completed' },
+      { status: 'completed' },
+      { status: 'completed' },
+      { status: 'completed' },
+      { status: 'completed' },
+      { status: 'missed' },
+      { status: 'missed' }
+    ];
+    
+    expect(calculateWeeklyProgress(logs)).toBe(true);
+  });
+});
 ```
-     E2E Tests (0%)
-    /            \
-   Integration (30%)
-  /              \
-Unit Tests (70%)
+
+**Test database functions locally:**
+
+```sql
+-- Test in Supabase SQL editor
+SELECT public.check_weekly_progress('test-stage-id');
+-- Verify JSON response structure
 ```
 
-## Test Organization
+## Quality Assurance Strategy
 
-**Frontend Tests:**
+### Manual Testing Checklist (5 minutes per story)
+1. **Happy Path**: Core user flow works
+2. **Error Cases**: Network failures show friendly messages
+3. **Edge Cases**: Empty states, loading states
+4. **Device Testing**: Test on iOS and Android via Expo Go
+
+### Production Monitoring
+- **Error Logging**: Supabase logs catch runtime issues
+- **User Feedback**: Direct user reports for UX problems
+- **Analytics**: Track completion rates, not test coverage
+
+## File Organization
+
 ```
 app/src/
-├── components/
-│   └── __tests__/
-│       ├── HabitCard.test.tsx
-│       └── ProgressRing.test.tsx
-├── hooks/
-│   └── __tests__/
-│       └── useHabitTracking.test.ts
-└── services/
+└── utils/
     └── __tests__/
-        └── habitService.test.ts
+        └── progressCalculator.test.ts  # Only pure business logic
+
+supabase/
+└── tests/
+    └── database-functions.sql  # Test SQL functions directly
 ```
 
-**Backend Tests:**
-```
-supabase/functions/
-├── generate-roadmap/
-│   └── index.test.ts
-└── _shared/
-    └── __tests__/
-        └── openai.test.ts
-```
+**Note:** Remove all existing component tests, hook tests, and integration tests to reduce maintenance burden.
 
-## Test Examples
+## Success Metrics
 
-**Frontend Component Test:**
-```typescript
-// components/__tests__/HabitCard.test.tsx
-import { render, fireEvent } from '@testing-library/react-native';
-import { HabitCard } from '../HabitCard';
-
-describe('HabitCard', () => {
-  it('should mark habit as complete on tap', () => {
-    const onComplete = jest.fn();
-    const { getByText } = render(
-      <HabitCard 
-        stageId="123" 
-        date="2024-03-15" 
-        onComplete={onComplete}
-      />
-    );
-    
-    fireEvent.press(getByText('Complete'));
-    expect(onComplete).toHaveBeenCalledWith('completed');
-  });
-});
-```
-
-**Backend API Test:**
-```typescript
-// functions/generate-roadmap/index.test.ts
-import { createClient } from '@supabase/supabase-js';
-
-describe('generate-roadmap', () => {
-  it('should create goal with roadmap', async () => {
-    const response = await fetch('http://localhost:54321/functions/v1/generate-roadmap', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${testToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        title: 'Learn Spanish',
-        description: 'Conversational level',
-        target_date: '2024-12-31',
-        experience_level: 'beginner'
-      })
-    });
-    
-    expect(response.status).toBe(200);
-    const data = await response.json();
-    expect(data.roadmap.stages).toHaveLength(12);
-  });
-});
-```
+- **Development Speed**: 90% time on features, 10% on testing
+- **Bug Detection**: Manual QA + production monitoring
+- **Code Quality**: TypeScript + linting (not testing) prevents most issues

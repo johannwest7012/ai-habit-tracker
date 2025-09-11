@@ -79,7 +79,7 @@ customModes:
     - read
     - edit
  - slug: bmad-architect
-   name: '🏗️ Architect'
+   name: '🏗️ BMad Architect'
    description: 'Architecture docs and configs'
    roleDefinition: You are a Architect specializing in architect tasks and responsibilities.
    whenToUse: Use for Architect tasks
