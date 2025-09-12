@@ -10,7 +10,7 @@ export interface AppError {
 export class ErrorHandler {
   static handle(error: unknown, context?: string): AppError {
     const timestamp = new Date();
-    
+
     if (error instanceof Error) {
       const appError: AppError = {
         code: 'UNKNOWN_ERROR',
@@ -27,7 +27,9 @@ export class ErrorHandler {
         appError.code = 'DATABASE_ERROR';
       }
 
-      logger.error(`Error in ${context || 'Unknown context'}`, error, { context });
+      logger.error(`Error in ${context || 'Unknown context'}`, error, {
+        context,
+      });
       return appError;
     }
 
@@ -37,10 +39,14 @@ export class ErrorHandler {
       timestamp,
     };
 
-    logger.error(`Non-Error thrown in ${context || 'Unknown context'}`, undefined, { 
-      error: String(error),
-      context 
-    });
+    logger.error(
+      `Non-Error thrown in ${context || 'Unknown context'}`,
+      undefined,
+      {
+        error: String(error),
+        context,
+      }
+    );
 
     return appError;
   }

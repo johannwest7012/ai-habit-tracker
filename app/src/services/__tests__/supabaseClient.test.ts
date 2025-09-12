@@ -67,18 +67,18 @@ describe('Supabase Client Service', () => {
       expect(config).toEqual({
         url: 'https://test-project.supabase.co',
         anonKey: 'test-anon-key',
-        options: {
-          auth: {
+        options: expect.objectContaining({
+          auth: expect.objectContaining({
             autoRefreshToken: true,
             persistSession: true,
             detectSessionInUrl: false,
-          },
+          }),
           realtime: {
             params: {
               eventsPerSecond: 10,
             },
           },
-        },
+        }),
       });
     });
 

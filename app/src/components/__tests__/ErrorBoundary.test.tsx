@@ -37,28 +37,33 @@ describe('ErrorBoundary', () => {
   });
 
   it('resets error state when Try Again is pressed', () => {
-    const { getByText, rerender } = render(
+    let shouldThrow = true;
+    const DynamicThrowError = () => {
+      if (shouldThrow) {
+        throw new Error('Test error');
+      }
+      return <Text>No error</Text>;
+    };
+
+    const { getByText } = render(
       <ErrorBoundary>
-        <ThrowError shouldThrow={true} />
+        <DynamicThrowError />
       </ErrorBoundary>
     );
 
     expect(getByText('Oops, something went wrong!')).toBeTruthy();
-    
-    fireEvent.press(getByText('Try Again'));
 
-    rerender(
-      <ErrorBoundary>
-        <ThrowError shouldThrow={false} />
-      </ErrorBoundary>
-    );
+    // Change the condition before pressing Try Again
+    shouldThrow = false;
+
+    fireEvent.press(getByText('Try Again'));
 
     expect(getByText('No error')).toBeTruthy();
   });
 
   it('renders custom fallback when provided', () => {
     const CustomFallback = <Text>Custom error UI</Text>;
-    
+
     const { getByText } = render(
       <ErrorBoundary fallback={CustomFallback}>
         <ThrowError shouldThrow={true} />

@@ -9,7 +9,7 @@ describe('Logger', () => {
   it('logs debug messages', () => {
     logger.debug('Debug message', { extra: 'data' });
     const logs = logger.getLogs();
-    
+
     expect(logs).toHaveLength(1);
     expect(logs[0].level).toBe(LogLevel.DEBUG);
     expect(logs[0].message).toBe('Debug message');
@@ -19,7 +19,7 @@ describe('Logger', () => {
   it('logs info messages', () => {
     logger.info('Info message');
     const logs = logger.getLogs();
-    
+
     expect(logs).toHaveLength(1);
     expect(logs[0].level).toBe(LogLevel.INFO);
     expect(logs[0].message).toBe('Info message');
@@ -28,7 +28,7 @@ describe('Logger', () => {
   it('logs warning messages', () => {
     logger.warn('Warning message');
     const logs = logger.getLogs();
-    
+
     expect(logs).toHaveLength(1);
     expect(logs[0].level).toBe(LogLevel.WARN);
     expect(logs[0].message).toBe('Warning message');
@@ -38,7 +38,7 @@ describe('Logger', () => {
     const error = new Error('Test error');
     logger.error('Error message', error, { context: 'test' });
     const logs = logger.getLogs();
-    
+
     expect(logs).toHaveLength(1);
     expect(logs[0].level).toBe(LogLevel.ERROR);
     expect(logs[0].message).toBe('Error message');
@@ -73,7 +73,11 @@ describe('Logger', () => {
     const afterTime = new Date();
 
     const logs = logger.getLogs();
-    expect(logs[0].timestamp.getTime()).toBeGreaterThanOrEqual(beforeTime.getTime());
-    expect(logs[0].timestamp.getTime()).toBeLessThanOrEqual(afterTime.getTime());
+    expect(logs[0].timestamp.getTime()).toBeGreaterThanOrEqual(
+      beforeTime.getTime()
+    );
+    expect(logs[0].timestamp.getTime()).toBeLessThanOrEqual(
+      afterTime.getTime()
+    );
   });
 });

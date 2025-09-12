@@ -99,6 +99,72 @@ const authService = {
   },
 
   /**
+   * Sign up with email and password
+   * Creates user account and sends email verification
+   */
+  async signUp(
+    email: string,
+    password: string,
+    options: { displayName?: string } = {}
+  ): Promise<ApiResponse<{ user: User | null; session: Session | null }>> {
+    try {
+      const client = getSupabaseClient();
+      const { data, error } = await client.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            display_name: options.displayName,
+          },
+        },
+      });
+
+      if (error) {
+        return {
+          success: false,
+          error: {
+            code: 'AUTH_SIGNUP_ERROR',
+            message: error.message,
+            details: { originalError: error },
+          },
+          message: 'Failed to sign up',
+        };
+      }
+
+      // Create profile after successful signup
+      if (data.user && data.session) {
+        try {
+          await authService.createProfile(data.user.id, {
+            displayName: options.displayName,
+          });
+        } catch (profileError) {
+          console.warn('Profile creation failed during signup:', profileError);
+        }
+      }
+
+      return {
+        success: true,
+        data: {
+          user: data.user,
+          session: data.session,
+        },
+        message:
+          'Account created successfully. Please check your email for verification.',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          code: 'AUTH_SIGNUP_ERROR',
+          message: error instanceof Error ? error.message : 'Unknown error',
+          details: { originalError: error },
+        },
+        message: 'Failed to sign up',
+      };
+    }
+  },
+
+  /**
    * Sign in with email and password
    */
   async signIn(
@@ -179,6 +245,97 @@ const authService = {
       };
     }
   },
+
+  /**
+   * Reset password - send reset email
+   */
+  async resetPassword(email: string): Promise<ApiResponse<void>> {
+    try {
+      const client = getSupabaseClient();
+      const { error } = await client.auth.resetPasswordForEmail(email);
+
+      if (error) {
+        return {
+          success: false,
+          error: {
+            code: 'AUTH_PASSWORD_RESET_ERROR',
+            message: error.message,
+            details: { originalError: error },
+          },
+          message: 'Failed to send password reset email',
+        };
+      }
+
+      return {
+        success: true,
+        data: undefined,
+        message: 'Password reset email sent successfully',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          code: 'AUTH_PASSWORD_RESET_ERROR',
+          message: error instanceof Error ? error.message : 'Unknown error',
+          details: { originalError: error },
+        },
+        message: 'Failed to send password reset email',
+      };
+    }
+  },
+
+  /**
+   * Create user profile
+   * Called automatically after successful signup
+   */
+  async createProfile(
+    userId: string,
+    profileData: { displayName?: string }
+  ): Promise<ApiResponse<void>> {
+    try {
+      const client = getSupabaseClient();
+      const { error } = await client.from('profiles').insert({
+        user_id: userId,
+        profile_data: {
+          display_name: profileData.displayName,
+          onboarding_completed: false,
+        },
+        subscription_tier: 'free',
+        notification_preferences: {
+          push_enabled: true,
+          email_enabled: true,
+        },
+      });
+
+      if (error) {
+        return {
+          success: false,
+          error: {
+            code: 'AUTH_PROFILE_CREATE_ERROR',
+            message: error.message,
+            details: { originalError: error },
+          },
+          message: 'Failed to create user profile',
+        };
+      }
+
+      return {
+        success: true,
+        data: undefined,
+        message: 'Profile created successfully',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          code: 'AUTH_PROFILE_CREATE_ERROR',
+          message: error instanceof Error ? error.message : 'Unknown error',
+          details: { originalError: error },
+        },
+        message: 'Failed to create user profile',
+      };
+    }
+  },
 };
 
 /**
@@ -231,6 +388,35 @@ export function useUser() {
 }
 
 /**
+ * Hook for user sign up
+ * Includes profile creation and error handling
+ */
+export function useSignUp() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      email,
+      password,
+      displayName,
+    }: {
+      email: string;
+      password: string;
+      displayName?: string;
+    }) => authService.signUp(email, password, { displayName }),
+    onSuccess: response => {
+      if (response.success && response.data?.session) {
+        // Invalidate auth queries to refetch user data
+        queryClient.invalidateQueries({ queryKey: authQueryKeys.all });
+      }
+    },
+    onError: error => {
+      console.error('Sign up failed:', error);
+    },
+  });
+}
+
+/**
  * Hook for user sign in
  * Includes optimistic updates and error handling
  */
@@ -271,6 +457,20 @@ export function useSignOut() {
     },
     onError: error => {
       console.error('Sign out failed:', error);
+    },
+  });
+}
+
+/**
+ * Hook for password reset
+ * Sends password reset email
+ */
+export function usePasswordReset() {
+  return useMutation({
+    mutationFn: ({ email }: { email: string }) =>
+      authService.resetPassword(email),
+    onError: error => {
+      console.error('Password reset failed:', error);
     },
   });
 }

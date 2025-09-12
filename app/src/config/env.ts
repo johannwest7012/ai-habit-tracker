@@ -7,10 +7,14 @@ interface EnvironmentConfig {
 const getConfig = (): EnvironmentConfig => {
   const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-  const environment = (process.env.EXPO_PUBLIC_ENV as EnvironmentConfig['environment']) || 'development';
+  const environment =
+    (process.env.EXPO_PUBLIC_ENV as EnvironmentConfig['environment']) ||
+    'development';
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Missing Supabase environment variables. Check your .env.local file.');
+    throw new Error(
+      'Missing Supabase environment variables. Check your .env.local file.'
+    );
   }
 
   return {

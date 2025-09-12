@@ -21,10 +21,16 @@ class Logger {
   private maxLogs = 1000;
 
   constructor() {
-    this.logLevel = config.environment === 'production' ? LogLevel.WARN : LogLevel.DEBUG;
+    this.logLevel =
+      config.environment === 'production' ? LogLevel.WARN : LogLevel.DEBUG;
   }
 
-  private log(level: LogLevel, message: string, context?: Record<string, any>, error?: Error) {
+  private log(
+    level: LogLevel,
+    message: string,
+    context?: Record<string, any>,
+    error?: Error
+  ) {
     if (level < this.logLevel) return;
 
     const entry: LogEntry = {
@@ -42,7 +48,7 @@ class Logger {
 
     const levelName = LogLevel[level];
     const prefix = `[${levelName}] ${entry.timestamp.toISOString()}`;
-    
+
     if (config.environment !== 'production') {
       switch (level) {
         case LogLevel.DEBUG:

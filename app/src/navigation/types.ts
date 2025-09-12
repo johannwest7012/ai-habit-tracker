@@ -21,11 +21,11 @@ export type MainTabParamList = {
   Profile: undefined;
 };
 
-export type RootStackScreenProps<T extends keyof RootStackParamList> = 
+export type RootStackScreenProps<T extends keyof RootStackParamList> =
   StackScreenProps<RootStackParamList, T>;
 
-export type AuthStackScreenProps<T extends keyof AuthStackParamList> = 
+export type AuthStackScreenProps<T extends keyof AuthStackParamList> =
   StackScreenProps<AuthStackParamList, T>;
 
-export type MainTabScreenProps<T extends keyof MainTabParamList> = 
+export type MainTabScreenProps<T extends keyof MainTabParamList> =
   BottomTabScreenProps<MainTabParamList, T>;

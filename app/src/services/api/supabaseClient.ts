@@ -5,6 +5,8 @@
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { config } from '../../config/environment';
 import type {
   SupabaseConfig,
@@ -20,6 +22,57 @@ import type {
 let supabaseClient: SupabaseClient | null = null;
 
 /**
+ * Custom storage implementation using AsyncStorage and SecureStore
+ * Sensitive data (access tokens, refresh tokens) stored in SecureStore
+ * Non-sensitive data (user preferences) stored in AsyncStorage
+ */
+const customAuthStorage = {
+  getItem: async (key: string): Promise<string | null> => {
+    try {
+      // Store auth tokens securely
+      if (key.includes('token') || key.includes('auth')) {
+        return await SecureStore.getItemAsync(key);
+      }
+
+      // Use AsyncStorage for other data
+      return await AsyncStorage.getItem(key);
+    } catch (error) {
+      console.error(`Failed to get item ${key} from storage:`, error);
+      return null;
+    }
+  },
+
+  setItem: async (key: string, value: string): Promise<void> => {
+    try {
+      // Store auth tokens securely
+      if (key.includes('token') || key.includes('auth')) {
+        await SecureStore.setItemAsync(key, value);
+      } else {
+        // Use AsyncStorage for other data
+        await AsyncStorage.setItem(key, value);
+      }
+    } catch (error) {
+      console.error(`Failed to set item ${key} in storage:`, error);
+      throw error;
+    }
+  },
+
+  removeItem: async (key: string): Promise<void> => {
+    try {
+      // Remove from both storage types to ensure cleanup
+      if (key.includes('token') || key.includes('auth')) {
+        await SecureStore.deleteItemAsync(key);
+      } else {
+        await AsyncStorage.removeItem(key);
+      }
+    } catch (error) {
+      console.error(`Failed to remove item ${key} from storage:`, error);
+      throw error;
+    }
+  },
+};
+
+/**
  * Create Supabase client configuration from environment
  * @returns SupabaseConfig object with proper typing
  */
@@ -32,6 +85,8 @@ export function createSupabaseConfig(): SupabaseConfig {
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: false, // Disable for React Native
+        storage: customAuthStorage,
+        flowType: 'pkce', // More secure for mobile apps
       },
       realtime: {
         params: {

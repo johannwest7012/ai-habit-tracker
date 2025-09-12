@@ -93,20 +93,24 @@ export async function setupQueryPersistence(): Promise<void> {
   try {
     // Load persisted cache data on startup
     const persistedData = await AsyncStorage.getItem('@react-query-cache');
-    
+
     if (persistedData) {
       try {
         const parsedData = JSON.parse(persistedData);
-        
+
         // Validate and restore cache data
-        if (parsedData && parsedData.queries && Array.isArray(parsedData.queries)) {
+        if (
+          parsedData &&
+          parsedData.queries &&
+          Array.isArray(parsedData.queries)
+        ) {
           // Set each persisted query in the cache
           parsedData.queries.forEach((query: any) => {
             if (query.queryKey && query.state && query.state.data) {
               // Only restore successful queries that aren't too old
               const dataAge = Date.now() - (query.state.dataUpdatedAt || 0);
               const maxAge = 24 * 60 * 60 * 1000; // 24 hours
-              
+
               if (dataAge < maxAge) {
                 client.setQueryData(query.queryKey, query.state.data);
               }
@@ -139,21 +143,23 @@ export async function setupQueryPersistence(): Promise<void> {
  */
 async function persistQueryCache(): Promise<void> {
   const client = getQueryClient();
-  
+
   try {
     const cache = client.getQueryCache();
     const queries = cache.getAll();
-    
+
     // Filter and serialize queries for persistence
     const persistableQueries = queries
       .filter(query => {
         // Only persist successful queries with data
-        return query.state.status === 'success' && 
-               query.state.data != null &&
-               // Don't persist sensitive auth data
-               !query.queryKey.some(key => 
-                 typeof key === 'string' && key.includes('session')
-               );
+        return (
+          query.state.status === 'success' &&
+          query.state.data != null &&
+          // Don't persist sensitive auth data
+          !query.queryKey.some(
+            key => typeof key === 'string' && key.includes('session')
+          )
+        );
       })
       .map(query => ({
         queryKey: query.queryKey,
@@ -161,7 +167,7 @@ async function persistQueryCache(): Promise<void> {
           data: query.state.data,
           dataUpdatedAt: query.state.dataUpdatedAt,
           status: query.state.status,
-        }
+        },
       }))
       // Limit number of persisted queries to prevent storage bloat
       .slice(0, 50);
@@ -171,7 +177,10 @@ async function persistQueryCache(): Promise<void> {
       timestamp: Date.now(),
     };
 
-    await AsyncStorage.setItem('@react-query-cache', JSON.stringify(persistData));
+    await AsyncStorage.setItem(
+      '@react-query-cache',
+      JSON.stringify(persistData)
+    );
   } catch (error) {
     console.warn('Failed to persist query cache:', error);
   }
