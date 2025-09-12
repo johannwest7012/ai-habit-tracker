@@ -10,7 +10,7 @@ import type {
 } from '../../../shared/types/navigation';
 
 // Auth Screens
-import SignInScreen from '../screens/auth/SignInScreen';
+import LoginScreen from '../screens/auth/LoginScreen';
 import SignUpScreen from '../screens/auth/SignUpScreen';
 
 // Onboarding Screens
@@ -64,7 +64,7 @@ export default function RootNavigator() {
 function AuthNavigator() {
   return (
     <AuthStack.Navigator screenOptions={{ headerShown: true }}>
-      <AuthStack.Screen name="SignIn" component={SignInScreen} />
+      <AuthStack.Screen name="SignIn" component={LoginScreen} />
       <AuthStack.Screen name="SignUp" component={SignUpScreen} />
     </AuthStack.Navigator>
   );
