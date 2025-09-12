@@ -2,6 +2,9 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useAuth } from '../hooks/useAuth';
+import { useAuthContext } from '../contexts/AuthContext';
+import ProtectedRoute from './ProtectedRoute';
 import type {
   RootStackParamList,
   AuthStackParamList,
@@ -31,32 +34,45 @@ const OnboardingStack = createNativeStackNavigator<OnboardingStackParamList>();
 const MainTab = createBottomTabNavigator<MainTabParamList>();
 
 export default function RootNavigator() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const { isInitialized } = useAuthContext();
+
+  // Show loading screen during auth state initialization
+  if (!isInitialized || isLoading) {
+    return <ProtectedRoute showLoading={true}>{null}</ProtectedRoute>;
+  }
+
   return (
     <NavigationContainer>
       <RootStack.Navigator
-        initialRouteName="Auth"
         screenOptions={{
           headerShown: true,
         }}
       >
-        {/* Auth Stack */}
-        <RootStack.Screen
-          name="Auth"
-          component={AuthNavigator}
-          options={{ headerShown: false }}
-        />
-        {/* Onboarding Stack */}
-        <RootStack.Screen
-          name="Onboarding"
-          component={OnboardingNavigator}
-          options={{ headerShown: false }}
-        />
-        {/* Main Tabs */}
-        <RootStack.Screen
-          name="MainTabs"
-          component={MainTabsNavigator}
-          options={{ headerShown: false }}
-        />
+        {!isAuthenticated ? (
+          // Unauthenticated flow - Show auth stack
+          <RootStack.Screen
+            name="Auth"
+            component={AuthNavigator}
+            options={{ headerShown: false }}
+          />
+        ) : (
+          // Authenticated flow - Show protected routes
+          <>
+            {/* Protected Onboarding Stack */}
+            <RootStack.Screen
+              name="Onboarding"
+              component={ProtectedOnboardingNavigator}
+              options={{ headerShown: false }}
+            />
+            {/* Protected Main Tabs */}
+            <RootStack.Screen
+              name="MainTabs"
+              component={ProtectedMainTabsNavigator}
+              options={{ headerShown: false }}
+            />
+          </>
+        )}
       </RootStack.Navigator>
     </NavigationContainer>
   );
@@ -107,5 +123,23 @@ function MainTabsNavigator() {
       <MainTab.Screen name="Journey" component={JourneyScreen} />
       <MainTab.Screen name="Profile" component={ProfileScreen} />
     </MainTab.Navigator>
+  );
+}
+
+// Protected Onboarding Navigator
+function ProtectedOnboardingNavigator() {
+  return (
+    <ProtectedRoute>
+      <OnboardingNavigator />
+    </ProtectedRoute>
+  );
+}
+
+// Protected Main Tabs Navigator
+function ProtectedMainTabsNavigator() {
+  return (
+    <ProtectedRoute>
+      <MainTabsNavigator />
+    </ProtectedRoute>
   );
 }

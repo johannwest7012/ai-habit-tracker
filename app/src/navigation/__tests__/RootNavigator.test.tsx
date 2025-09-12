@@ -53,6 +53,16 @@ jest.mock('@react-navigation/bottom-tabs', () => ({
 
 // Mock auth hooks
 jest.mock('../../hooks/useAuth', () => ({
+  useAuth: jest.fn(() => ({
+    isAuthenticated: false,
+    isLoading: false,
+    user: null,
+    session: null,
+    error: null,
+    isError: false,
+    isFetching: false,
+    refetch: jest.fn(),
+  })),
   useSignIn: () => ({
     mutateAsync: jest.fn(),
     isPending: false,
@@ -61,6 +71,20 @@ jest.mock('../../hooks/useAuth', () => ({
     mutateAsync: jest.fn(),
     isPending: false,
   }),
+}));
+
+// Mock auth context
+jest.mock('../../contexts/AuthContext', () => ({
+  useAuthContext: jest.fn(() => ({
+    isAuthenticated: false,
+    isLoading: false,
+    isError: false,
+    session: null,
+    user: null,
+    error: null,
+    refetch: jest.fn(),
+    isInitialized: true,
+  })),
 }));
 
 // Mock AsyncStorage
@@ -130,6 +154,17 @@ jest.mock('../../screens/auth/PasswordResetConfirmationScreen', () => {
   MockPasswordResetConfirmationScreen.displayName =
     'PasswordResetConfirmationScreen';
   return MockPasswordResetConfirmationScreen;
+});
+
+// Mock ProtectedRoute component
+jest.mock('../ProtectedRoute', () => {
+  return function MockProtectedRoute({
+    children,
+  }: {
+    children: React.ReactNode;
+  }) {
+    return children;
+  };
 });
 
 describe('RootNavigator', () => {
