@@ -7,13 +7,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getSupabaseClient } from '../services/api/supabaseClient';
 import type { ApiResponse } from '@shared/types/api';
-import type { 
-  WeeklyStage, 
-  HabitLog, 
-  Goal, 
-  WeeklyStageData, 
+import type {
+  WeeklyStage,
+  HabitLog,
+  Goal,
+  WeeklyStageData,
   HabitLogData,
-  dataMappers 
+  dataMappers,
 } from '@shared/types/data';
 
 /**
@@ -80,7 +80,9 @@ const habitService = {
   /**
    * Get weekly stages for a goal
    */
-  async getWeeklyStages(goalId: string): Promise<ApiResponse<WeeklyStageData[]>> {
+  async getWeeklyStages(
+    goalId: string
+  ): Promise<ApiResponse<WeeklyStageData[]>> {
     try {
       const client = getSupabaseClient();
       const { data, error } = await client
@@ -102,7 +104,9 @@ const habitService = {
       }
 
       // Convert database format to TypeScript format
-      const mappedData = (data as WeeklyStage[]).map(dataMappers.weeklyStageFromDb);
+      const mappedData = (data as WeeklyStage[]).map(
+        dataMappers.weeklyStageFromDb
+      );
 
       return {
         success: true,
@@ -176,7 +180,7 @@ const habitService = {
   ): Promise<ApiResponse<HabitLogData>> {
     try {
       const client = getSupabaseClient();
-      
+
       // Convert TypeScript format to database format
       const dbData = dataMappers.habitLogToDb({
         ...habitData,
@@ -184,7 +188,7 @@ const habitService = {
         createdAt: new Date(), // Will be set by database
         updatedAt: new Date(), // Will be set by database
       });
-      
+
       const { data, error } = await client
         .from('habit_logs')
         .insert(dbData)

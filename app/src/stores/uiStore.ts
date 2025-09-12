@@ -9,11 +9,11 @@ interface UIState {
   setActiveTabIndex: (index: number) => void;
 }
 
-export const useUIStore = create<UIState>((set) => ({
+export const useUIStore = create<UIState>(set => ({
   isNavigationReady: false,
   isOnboarding: false,
   activeTabIndex: 0,
-  setNavigationReady: (ready) => set({ isNavigationReady: ready }),
-  setOnboarding: (onboarding) => set({ isOnboarding: onboarding }),
-  setActiveTabIndex: (index) => set({ activeTabIndex: index }),
+  setNavigationReady: ready => set({ isNavigationReady: ready }),
+  setOnboarding: onboarding => set({ isOnboarding: onboarding }),
+  setActiveTabIndex: index => set({ activeTabIndex: index }),
 }));

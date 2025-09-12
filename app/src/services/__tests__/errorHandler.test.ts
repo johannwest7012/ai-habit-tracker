@@ -47,19 +47,31 @@ describe('ErrorHandler', () => {
 
   describe('error type checks', () => {
     it('correctly identifies network errors', () => {
-      const error = { code: 'NETWORK_ERROR', message: 'test', timestamp: new Date() };
+      const error = {
+        code: 'NETWORK_ERROR',
+        message: 'test',
+        timestamp: new Date(),
+      };
       expect(ErrorHandler.isNetworkError(error)).toBe(true);
       expect(ErrorHandler.isAuthError(error)).toBe(false);
     });
 
     it('correctly identifies auth errors', () => {
-      const error = { code: 'AUTH_ERROR', message: 'test', timestamp: new Date() };
+      const error = {
+        code: 'AUTH_ERROR',
+        message: 'test',
+        timestamp: new Date(),
+      };
       expect(ErrorHandler.isAuthError(error)).toBe(true);
       expect(ErrorHandler.isNetworkError(error)).toBe(false);
     });
 
     it('correctly identifies database errors', () => {
-      const error = { code: 'DATABASE_ERROR', message: 'test', timestamp: new Date() };
+      const error = {
+        code: 'DATABASE_ERROR',
+        message: 'test',
+        timestamp: new Date(),
+      };
       expect(ErrorHandler.isDatabaseError(error)).toBe(true);
       expect(ErrorHandler.isAuthError(error)).toBe(false);
     });
@@ -67,25 +79,47 @@ describe('ErrorHandler', () => {
 
   describe('getUserMessage', () => {
     it('returns appropriate message for network errors', () => {
-      const error = { code: 'NETWORK_ERROR', message: 'test', timestamp: new Date() };
+      const error = {
+        code: 'NETWORK_ERROR',
+        message: 'test',
+        timestamp: new Date(),
+      };
       const message = ErrorHandler.getUserMessage(error);
-      expect(message).toBe('Network connection issue. Please check your internet connection.');
+      expect(message).toBe(
+        'Network connection issue. Please check your internet connection.'
+      );
     });
 
     it('returns appropriate message for auth errors', () => {
-      const error = { code: 'AUTH_ERROR', message: 'test', timestamp: new Date() };
+      const error = {
+        code: 'AUTH_ERROR',
+        message: 'test',
+        timestamp: new Date(),
+      };
       const message = ErrorHandler.getUserMessage(error);
-      expect(message).toBe('Authentication failed. Please try logging in again.');
+      expect(message).toBe(
+        'Authentication failed. Please try logging in again.'
+      );
     });
 
     it('returns appropriate message for database errors', () => {
-      const error = { code: 'DATABASE_ERROR', message: 'test', timestamp: new Date() };
+      const error = {
+        code: 'DATABASE_ERROR',
+        message: 'test',
+        timestamp: new Date(),
+      };
       const message = ErrorHandler.getUserMessage(error);
-      expect(message).toBe('Unable to connect to the server. Please try again later.');
+      expect(message).toBe(
+        'Unable to connect to the server. Please try again later.'
+      );
     });
 
     it('returns default message for unknown errors', () => {
-      const error = { code: 'UNKNOWN_ERROR', message: 'test', timestamp: new Date() };
+      const error = {
+        code: 'UNKNOWN_ERROR',
+        message: 'test',
+        timestamp: new Date(),
+      };
       const message = ErrorHandler.getUserMessage(error);
       expect(message).toBe('An unexpected error occurred. Please try again.');
     });

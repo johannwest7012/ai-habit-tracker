@@ -1,4 +1,4 @@
-# Unified Project Structure
+git # Unified Project Structure
 
 ```plaintext
 ai-habit-tracker/
