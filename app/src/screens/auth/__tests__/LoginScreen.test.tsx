@@ -39,14 +39,8 @@ const mockSignInMutation = {
   isPending: false,
 };
 
-const mockPasswordResetMutation = {
-  mutateAsync: jest.fn(),
-  isPending: false,
-};
-
 jest.mock('../../../hooks/useAuth', () => ({
   useSignIn: jest.fn(),
-  usePasswordReset: jest.fn(),
 }));
 
 describe('LoginScreen', () => {
@@ -63,9 +57,6 @@ describe('LoginScreen', () => {
     // Reset mocks
     jest.clearAllMocks();
     (useAuthModule.useSignIn as jest.Mock).mockReturnValue(mockSignInMutation);
-    (useAuthModule.usePasswordReset as jest.Mock).mockReturnValue(
-      mockPasswordResetMutation
-    );
     (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
   });
 
@@ -359,83 +350,14 @@ describe('LoginScreen', () => {
     });
   });
 
-  describe('Forgot Password Functionality', () => {
-    it('should require email for password reset', async () => {
+  describe('Forgot Password Navigation', () => {
+    it('should navigate to password reset screen', () => {
       renderLoginScreen();
 
       const forgotPasswordLink = screen.getByTestId('forgot-password-link');
       fireEvent.press(forgotPasswordLink);
 
-      expect(Alert.alert).toHaveBeenCalledWith(
-        'Email Required',
-        'Please enter your email address to reset your password.'
-      );
-
-      expect(mockPasswordResetMutation.mutateAsync).not.toHaveBeenCalled();
-    });
-
-    it('should validate email format for password reset', async () => {
-      renderLoginScreen();
-
-      const emailInput = screen.getByTestId('email-input');
-      const forgotPasswordLink = screen.getByTestId('forgot-password-link');
-
-      fireEvent.changeText(emailInput, 'invalid-email');
-      fireEvent.press(forgotPasswordLink);
-
-      expect(Alert.alert).toHaveBeenCalledWith(
-        'Invalid Email',
-        'Please enter a valid email address to reset your password.'
-      );
-
-      expect(mockPasswordResetMutation.mutateAsync).not.toHaveBeenCalled();
-    });
-
-    it('should send password reset email for valid email', async () => {
-      mockPasswordResetMutation.mutateAsync.mockResolvedValue({
-        success: true,
-      });
-
-      renderLoginScreen();
-
-      const emailInput = screen.getByTestId('email-input');
-      const forgotPasswordLink = screen.getByTestId('forgot-password-link');
-
-      fireEvent.changeText(emailInput, 'test@example.com');
-      fireEvent.press(forgotPasswordLink);
-
-      await waitFor(() => {
-        expect(mockPasswordResetMutation.mutateAsync).toHaveBeenCalledWith({
-          email: 'test@example.com',
-        });
-      });
-
-      expect(Alert.alert).toHaveBeenCalledWith(
-        'Password Reset Sent',
-        'Check your email for password reset instructions.'
-      );
-    });
-
-    it('should handle password reset errors', async () => {
-      mockPasswordResetMutation.mutateAsync.mockResolvedValue({
-        success: false,
-        error: { message: 'User not found' },
-      });
-
-      renderLoginScreen();
-
-      const emailInput = screen.getByTestId('email-input');
-      const forgotPasswordLink = screen.getByTestId('forgot-password-link');
-
-      fireEvent.changeText(emailInput, 'test@example.com');
-      fireEvent.press(forgotPasswordLink);
-
-      await waitFor(() => {
-        expect(Alert.alert).toHaveBeenCalledWith(
-          'Reset Failed',
-          'User not found'
-        );
-      });
+      expect(mockNavigate).toHaveBeenCalledWith('PasswordReset');
     });
   });
 

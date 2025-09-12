@@ -13,6 +13,8 @@ export type RootStackParamList = {
 export type AuthStackParamList = {
   SignIn: undefined;
   SignUp: undefined;
+  PasswordReset: undefined;
+  PasswordResetConfirmation: { email: string };
 };
 
 // Onboarding Stack - First-time user setup screens

@@ -12,6 +12,8 @@ import type {
 // Auth Screens
 import LoginScreen from '../screens/auth/LoginScreen';
 import SignUpScreen from '../screens/auth/SignUpScreen';
+import PasswordResetScreen from '../screens/auth/PasswordResetScreen';
+import PasswordResetConfirmationScreen from '../screens/auth/PasswordResetConfirmationScreen';
 
 // Onboarding Screens
 import WelcomeScreen from '../screens/onboarding/WelcomeScreen';
@@ -66,6 +68,16 @@ function AuthNavigator() {
     <AuthStack.Navigator screenOptions={{ headerShown: true }}>
       <AuthStack.Screen name="SignIn" component={LoginScreen} />
       <AuthStack.Screen name="SignUp" component={SignUpScreen} />
+      <AuthStack.Screen
+        name="PasswordReset"
+        component={PasswordResetScreen}
+        options={{ title: 'Reset Password' }}
+      />
+      <AuthStack.Screen
+        name="PasswordResetConfirmation"
+        component={PasswordResetConfirmationScreen}
+        options={{ title: 'Check Your Email' }}
+      />
     </AuthStack.Navigator>
   );
 }

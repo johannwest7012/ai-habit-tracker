@@ -18,7 +18,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { AuthStackScreenProps } from '@shared/types/navigation';
-import { useSignIn, usePasswordReset } from '../../hooks/useAuth';
+import { useSignIn } from '../../hooks/useAuth';
 
 type Props = AuthStackScreenProps<'SignIn'>;
 
@@ -37,7 +37,6 @@ const REMEMBER_ME_KEY = 'remember_me_email';
 
 export default function LoginScreen({ navigation }: Props) {
   const signInMutation = useSignIn();
-  const passwordResetMutation = usePasswordReset();
 
   const [formData, setFormData] = useState<FormData>({
     email: '',
@@ -151,47 +150,10 @@ export default function LoginScreen({ navigation }: Props) {
   };
 
   /**
-   * Handle forgot password
+   * Handle forgot password - navigate to password reset screen
    */
-  const handleForgotPassword = async () => {
-    if (!formData.email.trim()) {
-      Alert.alert(
-        'Email Required',
-        'Please enter your email address to reset your password.'
-      );
-      return;
-    }
-
-    if (!validateEmail(formData.email)) {
-      Alert.alert(
-        'Invalid Email',
-        'Please enter a valid email address to reset your password.'
-      );
-      return;
-    }
-
-    try {
-      const result = await passwordResetMutation.mutateAsync({
-        email: formData.email.trim(),
-      });
-
-      if (result.success) {
-        Alert.alert(
-          'Password Reset Sent',
-          'Check your email for password reset instructions.'
-        );
-      } else {
-        const errorMessage =
-          result.error?.message || 'Failed to send reset email';
-        Alert.alert('Reset Failed', errorMessage);
-      }
-    } catch (error) {
-      console.error('Password reset error:', error);
-      Alert.alert(
-        'Reset Failed',
-        'An unexpected error occurred. Please try again.'
-      );
-    }
+  const handleForgotPassword = () => {
+    navigation.navigate('PasswordReset');
   };
 
   /**
@@ -236,7 +198,7 @@ export default function LoginScreen({ navigation }: Props) {
     }
   };
 
-  const isLoading = signInMutation.isPending || passwordResetMutation.isPending;
+  const isLoading = signInMutation.isPending;
 
   return (
     <KeyboardAvoidingView

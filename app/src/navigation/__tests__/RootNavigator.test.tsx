@@ -119,6 +119,19 @@ jest.mock('../../screens/main/ProfileScreen', () => {
   return MockProfileScreen;
 });
 
+jest.mock('../../screens/auth/PasswordResetScreen', () => {
+  const MockPasswordResetScreen = () => null;
+  MockPasswordResetScreen.displayName = 'PasswordResetScreen';
+  return MockPasswordResetScreen;
+});
+
+jest.mock('../../screens/auth/PasswordResetConfirmationScreen', () => {
+  const MockPasswordResetConfirmationScreen = () => null;
+  MockPasswordResetConfirmationScreen.displayName =
+    'PasswordResetConfirmationScreen';
+  return MockPasswordResetConfirmationScreen;
+});
+
 describe('RootNavigator', () => {
   beforeEach(() => {
     jest.clearAllMocks();
